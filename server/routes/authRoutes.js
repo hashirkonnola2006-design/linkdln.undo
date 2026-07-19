@@ -36,6 +36,7 @@ router.post('/login', async (req, res) => {
     res.status(201).json({
       _id: user._id,
       name: user.name,
+      email: user.email || '',
       bio: user.bio,
       role: user.role,
       company: user.company,
@@ -62,6 +63,7 @@ router.get('/me', async (req, res) => {
     res.json({
       _id: user._id,
       name: user.name,
+      email: user.email || '',
       bio: user.bio,
       role: user.role,
       company: user.company,
@@ -77,7 +79,7 @@ router.get('/me', async (req, res) => {
 /**
  * PATCH /api/auth/me
  * Updates the current user's profile fields.
- * Body: { name?, bio?, role?, company?, location?, avatar? }
+ * Body: { name?, email?, bio?, role?, company?, location?, avatar? }
  */
 router.patch('/me', async (req, res) => {
   const sessionId = req.cookies?.[COOKIE_NAME];
@@ -86,8 +88,9 @@ router.patch('/me', async (req, res) => {
     const user = await User.findOne({ sessionId });
     if (!user) return res.status(401).json({ message: 'Session invalid.' });
 
-    const { name, bio, role, company, location, avatar } = req.body;
+    const { name, email, bio, role, company, location, avatar } = req.body;
     if (name !== undefined) user.name = name.trim() || user.name;
+    if (email !== undefined) user.email = email;
     if (bio !== undefined) user.bio = bio;
     if (role !== undefined) user.role = role;
     if (company !== undefined) user.company = company;
@@ -98,6 +101,7 @@ router.patch('/me', async (req, res) => {
     res.json({
       _id: user._id,
       name: user.name,
+      email: user.email || '',
       bio: user.bio,
       role: user.role,
       company: user.company,

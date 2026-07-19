@@ -142,6 +142,7 @@ const ProfilePage = () => {
     try {
       await updateProfile({
         name: profile.name,
+        email: profile.email,
         bio: profile.bio,
         role: profile.role,
         company: profile.company,
@@ -201,7 +202,7 @@ const ProfilePage = () => {
             <div class="flex items-center gap-5 relative z-10">
               <div class="relative group shrink-0">
                 <img
-                  src={profile.avatar || `https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&h=300`}
+                  src={profile.avatar || `https://api.dicebear.com/7.x/open-peeps/svg?seed=${encodeURIComponent(profile.name || 'user')}`}
                   alt={profile.name || 'User Profile'}
                   class="h-24 w-24 rounded-full object-cover shadow-xs border-2 border-white bg-slate-100"
                 />
@@ -217,25 +218,25 @@ const ProfilePage = () => {
 
               <div class="space-y-1">
                 <h2 class="text-xl font-extrabold text-slate-900 tracking-tight">
-                  {profile.name || 'Hashir Muhiyudheen konnola'}
+                  {profile.name || 'Your Name'}
                 </h2>
                 <p class="text-xs font-extrabold text-blue-600">
-                  {profile.role ? `${profile.role} / Product Lead` : 'Organizer / Product Lead'}
+                  {profile.role || 'Member'}
                 </p>
                 <p class="text-xs text-slate-500 font-semibold">
-                  {profile.bio ? profile.bio : 'ottakk vazhyi vetti vannavan'}
+                  {profile.bio || 'No bio added yet'}
                 </p>
                 
                 <div class="flex items-center gap-2 text-[11px] font-semibold text-slate-400 pt-1">
                   <div class="flex items-center gap-1">
                     <MapPin size={12} class="text-slate-400" />
-                    <span>{profile.location ? profile.location.split('(')[0].trim() : 'Malappuram'}</span>
+                    <span>{profile.location || 'Location not specified'}</span>
                   </div>
                   <span class="text-slate-300">|</span>
                   <div class="flex items-center gap-1">
                     <Link2 size={12} class="text-slate-400" />
                     <span class="text-blue-600 font-bold hover:underline cursor-pointer">
-                      linkdln.undo/{profile.name ? profile.name.toLowerCase().replace(/\s+/g, '') : 'hashirmuhiyudheenkonnola'}
+                      linkdln.undo/{profile.name ? profile.name.toLowerCase().replace(/\s+/g, '') : 'profile'}
                     </span>
                   </div>
                 </div>
@@ -269,7 +270,7 @@ const ProfilePage = () => {
             <div class="relative z-10 self-end md:self-center">
               <span class="bg-white/90 shadow-2xs border border-slate-100 rounded-full px-5 py-2 text-xs font-bold text-slate-700 flex items-center gap-1.5 backdrop-blur-xs">
                 <Building2 size={13} class="text-slate-500" />
-                {profile.company || 'solo'}
+                {profile.company || 'Independent'}
               </span>
             </div>
 
@@ -303,7 +304,7 @@ const ProfilePage = () => {
                         name="name"
                         value={profile.name}
                         onChange={handleChange}
-                        placeholder="Hashir Muhiyudheen konnola"
+                        placeholder="e.g. Hashir"
                         class="w-full bg-transparent text-xs font-extrabold text-slate-900 focus:outline-none placeholder:text-slate-300"
                       />
                     </div>
@@ -321,7 +322,7 @@ const ProfilePage = () => {
                         name="role"
                         value={profile.role}
                         onChange={handleChange}
-                        placeholder="vibe coder"
+                        placeholder="e.g. Software Engineer / Product Manager"
                         class="w-full bg-transparent text-xs font-extrabold text-slate-900 focus:outline-none placeholder:text-slate-300"
                       />
                     </div>
@@ -339,7 +340,7 @@ const ProfilePage = () => {
                         name="location"
                         value={profile.location}
                         onChange={handleChange}
-                        placeholder="malappuram"
+                        placeholder="e.g. Malappuram, Kerala"
                         class="w-full bg-transparent text-xs font-extrabold text-slate-900 focus:outline-none placeholder:text-slate-300"
                       />
                     </div>
@@ -369,7 +370,7 @@ const ProfilePage = () => {
                         name="email"
                         value={profile.email}
                         onChange={handleChange}
-                        placeholder="hashirkonnola2006@gmail.com"
+                        placeholder="e.g. name@example.com"
                         class="w-full bg-transparent text-xs font-extrabold text-slate-900 focus:outline-none placeholder:text-slate-300"
                       />
                     </div>
@@ -387,7 +388,7 @@ const ProfilePage = () => {
                         name="company"
                         value={profile.company}
                         onChange={handleChange}
-                        placeholder="solo"
+                        placeholder="e.g. Acme Inc."
                         class="w-full bg-transparent text-xs font-extrabold text-slate-900 focus:outline-none placeholder:text-slate-300"
                       />
                     </div>
@@ -413,7 +414,7 @@ const ProfilePage = () => {
                   onChange={handleChange}
                   maxLength={250}
                   rows={3}
-                  placeholder="ottakk vazhyi vetti vannavan"
+                  placeholder="Tell others about your background, interests, or goals..."
                   class="w-full bg-transparent text-xs font-extrabold text-slate-900 focus:outline-none placeholder:text-slate-300 resize-none"
                 />
                 <span class="absolute bottom-3 right-4 text-[10px] font-extrabold text-slate-400">

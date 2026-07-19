@@ -64,77 +64,7 @@ const RoomWall = () => {
     { name: 'orange', label: 'Peach', bg: 'bg-[#fed7aa] text-[#7c2d12] border-orange-200/50' }
   ];
 
-  // High-fidelity fallback note board data matching Screenshot exactly
-  const defaultNotes = [
-    {
-      _id: 'n1',
-      title: 'Meeting Link',
-      content: 'Check out the new wireframes on Drive before our sync at 3 PM.',
-      color: 'blue',
-      authorName: 'Marcus Chen',
-      authorAvatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=100&h=100',
-      attachment: 'Q3_Roadmap_V2.fig',
-      likes: 4,
-      likedBy: [],
-      createdAt: new Date(Date.now() - 500000)
-    },
-    {
-      _id: 'n2',
-      title: 'Finalizing the Color Palette',
-      content: 'We need to ensure the primary blue #004ac6 has enough contrast for accessibility on the landing page CTA buttons.',
-      color: 'yellow',
-      authorName: 'Alex Rivera',
-      authorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&h=100',
-      likes: 12,
-      likedBy: [],
-      createdAt: new Date(Date.now() - 3600000)
-    },
-    {
-      _id: 'n3',
-      title: "Don't forget the FAB!",
-      content: 'The floating action button needs to be clearly visible over all note colors. Using the primary blue #004ac6 should do the trick.',
-      color: 'green',
-      authorName: 'Tom Wilson',
-      authorAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&h=100',
-      likes: 3,
-      likedBy: [],
-      createdAt: new Date(Date.now() - 10800000)
-    },
-    {
-      _id: 'n4',
-      title: 'Logo Assets',
-      content: 'All variations of the linkdln.undo logo are now available in the shared folder. Please use the SVG versions for web.',
-      color: 'purple',
-      authorName: 'Jordan Taylor',
-      authorAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&h=100',
-      attachment: 'Brand_Kit_2024.zip',
-      likes: 21,
-      likedBy: [],
-      createdAt: new Date(Date.now() - 1800000)
-    },
-    {
-      _id: 'n5',
-      title: 'Performance Review',
-      content: "The masonry grid is looking great on desktop, but let's monitor the layout shift on mobile screens with slower connections.",
-      color: 'white',
-      authorName: 'Sarah Jenkins',
-      authorAvatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=100&h=100',
-      likes: 8,
-      likedBy: [],
-      createdAt: new Date(Date.now() - 7200000)
-    },
-    {
-      _id: 'n6',
-      title: 'Dark Mode Audit',
-      content: 'Check how these sticky note colors adapt when dark mode is toggled. We might need slightly more muted variants for surface-dim.',
-      color: 'orange',
-      authorName: 'Sonia Miller',
-      authorAvatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=100&h=100',
-      likes: 15,
-      likedBy: [],
-      createdAt: new Date(Date.now() - 14400000)
-    }
-  ];
+
 
   // Load local profile
   useEffect(() => {
@@ -209,22 +139,18 @@ const RoomWall = () => {
     attendee?._id
   );
 
-  // Fetch Notes from DB or fallback
+  // Fetch Notes from DB
   const loadNotes = async () => {
     try {
       const res = await fetch(`/api/events/${code}/notes`);
       if (res.ok) {
         const data = await res.json();
-        if (data && data.length > 0) {
-          setNotes(data);
-        } else {
-          setNotes(defaultNotes);
-        }
+        setNotes(data || []);
       } else {
-        setNotes(defaultNotes);
+        setNotes([]);
       }
     } catch (err) {
-      setNotes(defaultNotes);
+      setNotes([]);
     }
   };
 

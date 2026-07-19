@@ -72,14 +72,6 @@ const BrowseRooms = () => {
       setLoading(false);
     }
   };
-    } catch (err) {
-      console.error('Error loading rooms, using defaults', err);
-      const localRooms = JSON.parse(localStorage.getItem('local_created_rooms') || '[]');
-      setRooms([...localRooms, ...mockRooms]);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   useEffect(() => {
     fetchRooms();

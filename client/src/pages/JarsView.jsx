@@ -24,54 +24,7 @@ const JarsView = () => {
   const [regrouping, setRegrouping] = useState(false);
   const [selectedJar, setSelectedJar] = useState(null);
 
-  // High fidelity fallback jars matching screenshot mockup 100%
-  const defaultJars = [
-    {
-      _id: 'jar1',
-      label: 'Web Developers',
-      reason: 'Developers working with JavaScript, React, and Full-Stack systems seeking technical collaborations.',
-      memberIds: [
-        { _id: '1', name: 'Hashir Muhiyudheen', role: 'Full Stack Dev', company: 'solo', avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=100&h=100' },
-        { _id: '2', name: 'Thomas Wright', role: 'Frontend Engineer', company: 'ReactCore', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&h=100' },
-        { _id: '3', name: 'Leila Chen', role: 'Software Engineer', company: 'DevLabs', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=100&h=100' }
-      ],
-      totalCount: 3,
-      themeKey: 'web'
-    },
-    {
-      _id: 'jar2',
-      label: 'NITC Students',
-      reason: 'Undergraduates and alumni from NIT Calicut exploring internship opportunities and tech career paths.',
-      memberIds: [
-        { _id: '4', name: 'Rahul Varma', role: 'Engineering Student', company: 'NITC', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=100&h=100' },
-        { _id: '5', name: 'Marcus Thorne', role: 'Research Scholar', company: 'NITC', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&h=100' }
-      ],
-      totalCount: 2,
-      themeKey: 'student'
-    },
-    {
-      _id: 'jar3',
-      label: 'Product Builders',
-      reason: 'Founders, Product Managers, and Builders aiming to launch SaaS projects and find growth strategies.',
-      memberIds: [
-        { _id: '6', name: 'Priya Sharma', role: 'Founder', company: 'EcoTech', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&h=100' },
-        { _id: '7', name: 'Sanya Gupta', role: 'Product Manager', company: 'QuickMeet', avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=100&h=100' }
-      ],
-      totalCount: 2,
-      themeKey: 'product'
-    },
-    {
-      _id: 'jar4',
-      label: 'Designers',
-      reason: 'UI/UX designers, researchers, and design system advocates looking to talk styling and typography.',
-      memberIds: [
-        { _id: '8', name: 'Elena Rossi', role: 'Senior UX Researcher', company: 'Design Culture', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&h=100' },
-        { _id: '9', name: 'Katelyn Roe', role: 'UX Lead', company: 'DesignCo', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&h=100' }
-      ],
-      totalCount: 2,
-      themeKey: 'designer'
-    }
-  ];
+
 
   // Load local profile
   useEffect(() => {
@@ -146,22 +99,18 @@ const JarsView = () => {
     attendee?._id
   );
 
-  // Fetch Jars from DB or fallback
+  // Fetch Jars from DB
   const loadJars = async () => {
     try {
       const res = await fetch(`/api/events/${code}/jars`);
       if (res.ok) {
         const data = await res.json();
-        if (data && data.length > 0) {
-          setJars(data);
-        } else {
-          setJars(defaultJars);
-        }
+        setJars(data || []);
       } else {
-        setJars(defaultJars);
+        setJars([]);
       }
     } catch (err) {
-      setJars(defaultJars);
+      setJars([]);
     }
   };
 
@@ -260,7 +209,7 @@ const JarsView = () => {
     );
   }
 
-  const activeJarsList = (jars && jars.length > 0) ? jars : defaultJars;
+  const activeJarsList = jars || [];
 
   return (
     <RoomLayout eventTitle={event?.title || 'pedfefe'} onlineCount={onlineCount || 1} attendees={attendees}>

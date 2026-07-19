@@ -64,10 +64,11 @@ export const AuthProvider = ({ children }) => {
     const fallbackUser = {
       _id: 'user_' + Math.random().toString(36).substring(2, 9),
       name: name.trim(),
+      email: '',
       bio: '',
-      role: 'Organizer / Product Lead',
-      company: 'linkdln.undo',
-      location: 'Malappuram',
+      role: '',
+      company: '',
+      location: '',
       avatar: `https://api.dicebear.com/7.x/open-peeps/svg?seed=${encodeURIComponent(name.trim())}`,
       createdAt: new Date().toISOString()
     };

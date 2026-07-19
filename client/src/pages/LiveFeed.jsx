@@ -101,64 +101,24 @@ const LiveFeed = () => {
     attendee?._id
   );
 
-  // High fidelity default attendees matching screenshot mockup exactly
   const displayAttendees = React.useMemo(() => {
-    const currentName = attendee?.name || 'Hashir Muhiyudheen';
-    const currentAvatar = attendee?.avatar || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=120&h=120';
-    const currentRole = attendee?.role || 'Event Host';
-    const currentCompany = attendee?.company || 'solo';
-
-    const defaultList = [
-      {
-        _id: 'user_hashir',
-        name: currentName,
-        role: currentRole,
-        company: currentCompany,
-        avatar: currentAvatar,
-        isOnline: true,
-        isFeatured: true,
-        isSelf: true,
-        theme: 'blue'
-      },
-      {
-        _id: 'user_rishab',
-        name: 'Rishab Sharma',
-        role: 'UI/UX Designer',
-        company: 'Design Culture',
-        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&h=120',
-        isOnline: true,
-        isFeatured: false,
-        theme: 'emerald'
-      },
-      {
-        _id: 'user_ananya',
-        name: 'Ananya Iyer',
-        role: 'Product Manager',
-        company: 'QuickMeet',
-        avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=120&h=120',
-        isOnline: true,
-        isFeatured: false,
-        theme: 'amber'
-      }
-    ];
-
-    if (!socketAttendees || socketAttendees.length === 0) {
-      return defaultList;
+    if (socketAttendees && socketAttendees.length > 0) {
+      return socketAttendees;
     }
-
-    // Combine socket attendees with default high fidelity list
-    const combined = [...defaultList];
-    socketAttendees.forEach(sa => {
-      if (!combined.some(c => c._id === sa._id || c.name?.toLowerCase() === sa.name?.toLowerCase())) {
-        combined.push({
-          ...sa,
+    if (attendee) {
+      return [
+        {
+          _id: attendee._id || 'user_me',
+          name: attendee.name,
+          role: attendee.role || 'Member',
+          company: attendee.company || '',
+          avatar: attendee.avatar,
           isOnline: true,
-          theme: 'blue'
-        });
-      }
-    });
-
-    return combined;
+          isSelf: true
+        }
+      ];
+    }
+    return [];
   }, [socketAttendees, attendee]);
 
   const handleConnectClick = (userId) => {
