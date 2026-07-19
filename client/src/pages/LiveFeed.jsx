@@ -26,44 +26,47 @@ const LiveFeed = () => {
   // Load local profile details
   useEffect(() => {
     const loadAttendee = () => {
+      const isCreator = localStorage.getItem(`room_creator_${code}`) === 'true';
+      const sessionUser = localStorage.getItem('session_user') || localStorage.getItem('global_profile');
+      let parsedUser = null;
+      if (sessionUser) {
+        try { parsedUser = JSON.parse(sessionUser); } catch (e) {}
+      }
+
       let saved = localStorage.getItem(`attendee_${code}`);
       if (saved) {
-        setAttendee(JSON.parse(saved));
-      } else {
-        const globalProfile = localStorage.getItem('global_profile');
-        const isCreator = localStorage.getItem(`room_creator_${code}`) === 'true';
-        if (globalProfile) {
-          try {
-            const parsed = JSON.parse(globalProfile);
-            if (parsed.name) {
-              const selfAttendee = {
-                _id: 'user_hashir',
-                name: parsed.name,
-                email: parsed.email || '',
-                role: parsed.role || (isCreator ? 'Event Host' : 'Attendee'),
-                company: parsed.company || 'solo',
-                avatar: parsed.avatar || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=120&h=120',
-                isHost: isCreator,
-                isOnline: true
-              };
-              localStorage.setItem(`attendee_${code}`, JSON.stringify(selfAttendee));
-              setAttendee(selfAttendee);
-              return;
-            }
-          } catch (err) {}
+        const parsedSaved = JSON.parse(saved);
+        if (parsedUser && parsedUser.name) {
+          parsedSaved.name = parsedUser.name;
+          parsedSaved.avatar = parsedUser.avatar || parsedSaved.avatar;
+          parsedSaved.company = parsedUser.company || parsedSaved.company;
+          parsedSaved.role = parsedUser.role || parsedSaved.role;
         }
-        
-        // Default demo user matching mockup screenshot
-        const demoSelf = {
-          _id: 'user_hashir',
-          name: 'Hashir Muhiyudheen',
-          role: 'Event Host',
-          company: 'solo',
-          avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=120&h=120',
-          isHost: true,
-          isOnline: true
-        };
-        setAttendee(demoSelf);
+        setAttendee(parsedSaved);
+      } else {
+        if (parsedUser && parsedUser.name) {
+          const selfAttendee = {
+            _id: 'user_me',
+            name: parsedUser.name,
+            email: parsedUser.email || '',
+            role: parsedUser.role || (isCreator ? 'Event Host' : 'Attendee'),
+            company: parsedUser.company || '',
+            avatar: parsedUser.avatar || `https://api.dicebear.com/7.x/open-peeps/svg?seed=${encodeURIComponent(parsedUser.name)}`,
+            isHost: isCreator,
+            isOnline: true
+          };
+          localStorage.setItem(`attendee_${code}`, JSON.stringify(selfAttendee));
+          setAttendee(selfAttendee);
+        } else {
+          const demoSelf = {
+            _id: 'user_me',
+            name: 'Attendee',
+            role: isCreator ? 'Event Host' : 'Attendee',
+            isHost: isCreator,
+            isOnline: true
+          };
+          setAttendee(demoSelf);
+        }
       }
     };
     loadAttendee();
@@ -312,16 +315,18 @@ const LiveFeed = () => {
                 </div>
               )}
 
-              {/* View More Link Centered */}
-              <div class="text-center pt-2">
-                <button
-                  onClick={() => alert('Showing more attendees!')}
-                  class="inline-flex items-center gap-1.5 text-xs font-black text-[#1a73e8] hover:underline cursor-pointer"
-                >
-                  <span>View more people</span>
-                  <ArrowRight size={14} />
-                </button>
-              </div>
+              {/* View More Link Centered - Only shown when there are more than 6 attendees */}
+              {displayAttendees.length > 6 && (
+                <div class="text-center pt-2">
+                  <button
+                    onClick={() => alert('Showing more attendees!')}
+                    class="inline-flex items-center gap-1.5 text-xs font-black text-[#1a73e8] hover:underline cursor-pointer"
+                  >
+                    <span>View more people</span>
+                    <ArrowRight size={14} />
+                  </button>
+                </div>
+              )}
 
             </div>
 
@@ -353,7 +358,7 @@ const LiveFeed = () => {
                       </div>
                       <div class="text-left">
                         <h4 class="text-xs font-black text-slate-900 leading-tight">
-                          {user.name} {user.isSelf && 'konnola'}
+                          {user.name}
                         </h4>
                         <span class="text-[11px] font-extrabold text-[#1a73e8] block mt-0.5">
                           {user.role || 'Event Host'}
