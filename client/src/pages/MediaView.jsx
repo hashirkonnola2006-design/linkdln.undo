@@ -63,7 +63,22 @@ const MediaView = () => {
   const [driveOwnerEmail, setDriveOwnerEmail] = useState('');
   const isCreator = localStorage.getItem(`room_creator_${code}`) === 'true';
 
-  const driveFolderUrl = event?.resourcesDriveUrl || (folderId ? `https://drive.google.com/drive/folders/${folderId}` : null);
+  const extractDriveFolderId = (urlOrId) => {
+    if (!urlOrId) return null;
+    const str = String(urlOrId).trim();
+    const folderMatch = str.match(/\/(?:folders|d)\/([a-zA-Z0-9_-]{10,})/);
+    if (folderMatch) return folderMatch[1];
+    const idMatch = str.match(/[?&]id=([a-zA-Z0-9_-]{10,})/);
+    if (idMatch) return idMatch[1];
+    if (/^[a-zA-Z0-9_-]{10,}$/.test(str)) return str;
+    return null;
+  };
+
+  const localRooms = JSON.parse(localStorage.getItem('local_created_rooms') || '[]');
+  const localRoom = localRooms.find(r => r.code === code);
+  const activeDriveUrl = event?.resourcesDriveUrl || localRoom?.resourcesDriveUrl || '';
+  const effectiveFolderId = folderId || extractDriveFolderId(activeDriveUrl);
+  const driveFolderUrl = activeDriveUrl || (effectiveFolderId ? `https://drive.google.com/drive/folders/${effectiveFolderId}` : null);
   const fileUploadInputRef = useRef(null);
 
   // UI view controls
@@ -138,33 +153,36 @@ const MediaView = () => {
     setDriveError(null);
 
     try {
+      let currentEvent = null;
       // 1. Load event details + OAuth status
       const evRes = await fetch(`/api/events/${code}`);
       if (evRes.ok) {
-        const data = await evRes.json();
-        setEvent(data);
-        if (data.driveConnected) {
+        currentEvent = await evRes.json();
+        setEvent(currentEvent);
+        if (currentEvent.driveConnected) {
           setDriveOAuthConnected(true);
         }
-        if (data.driveOwnerEmail) {
-          setDriveOwnerEmail(data.driveOwnerEmail);
+        if (currentEvent.driveOwnerEmail) {
+          setDriveOwnerEmail(currentEvent.driveOwnerEmail);
         }
       } else {
         const localRooms = JSON.parse(localStorage.getItem('local_created_rooms') || '[]');
         const foundLocal = localRooms.find(r => r.code === code);
-        setEvent(foundLocal || { code, title: 'Room ' + code });
+        currentEvent = foundLocal || { code, title: 'Room ' + code };
+        setEvent(currentEvent);
       }
 
       // 2. Load Drive files from backend proxy
-      // Build folderUrl fallback from localStorage (for rooms not yet saved to DB)
-      let folderUrlParam = '';
-      try {
-        const localRooms = JSON.parse(localStorage.getItem('local_created_rooms') || '[]');
-        const localRoom = localRooms.find(r => r.code === code);
-        if (localRoom?.resourcesDriveUrl) {
-          folderUrlParam = `?folderUrl=${encodeURIComponent(localRoom.resourcesDriveUrl)}`;
-        }
-      } catch (_) {}
+      let driveUrlToUse = currentEvent?.resourcesDriveUrl;
+      if (!driveUrlToUse) {
+        try {
+          const localRooms = JSON.parse(localStorage.getItem('local_created_rooms') || '[]');
+          const localRoom = localRooms.find(r => r.code === code);
+          driveUrlToUse = localRoom?.resourcesDriveUrl;
+        } catch (_) {}
+      }
+
+      let folderUrlParam = driveUrlToUse ? `?folderUrl=${encodeURIComponent(driveUrlToUse)}` : '';
 
       const driveRes = await fetch(`/api/events/${code}/drive-files${folderUrlParam}`);
       if (driveRes.ok) {
@@ -177,9 +195,9 @@ const MediaView = () => {
       } else {
         const errData = await driveRes.json().catch(() => ({}));
         if (driveRes.status === 503) {
-          setDriveError({ type: 'setup', message: 'GOOGLE_API_KEY not configured. Add it to your server .env file to load Drive images.', folderId: errData.folderId });
+          setDriveError({ type: 'setup', message: 'Google API key is missing on the server. Connect your Google Account or open the Drive Folder directly using the buttons above.', folderId: errData.folderId });
         } else {
-          setDriveError({ type: 'error', message: errData.message || 'Failed to load Drive files.' });
+          setDriveError({ type: 'info', message: errData.message || 'Connect your Google Account or open the Drive Folder directly using the buttons above.' });
         }
       }
 
@@ -402,7 +420,7 @@ const MediaView = () => {
               </h1>
 
               <div class="flex items-center gap-2 flex-wrap self-start mt-1">
-                {folderId ? (
+                {effectiveFolderId || activeDriveUrl ? (
                   <span class="inline-flex items-center gap-1.5 rounded-full bg-[#e6f4ea] text-[#137333] border border-emerald-200/80 px-3.5 py-1 text-xs font-extrabold shadow-2xs">
                     <CheckCircle size={14} />
                     Drive Linked
@@ -419,15 +437,15 @@ const MediaView = () => {
                     <ShieldCheck size={14} />
                     Google Connected
                   </span>
-                ) : isCreator && folderId ? (
+                ) : (
                   <a
-                    href={`/api/auth/google?roomCode=${encodeURIComponent(code)}&title=${encodeURIComponent(event?.title || '')}&description=${encodeURIComponent(event?.description || '')}&hostName=${encodeURIComponent(event?.hostName || '')}&hostAvatar=${encodeURIComponent(event?.hostAvatar || '')}&resourcesDriveUrl=${encodeURIComponent(event?.resourcesDriveUrl || '')}&driveFolderId=${encodeURIComponent(folderId || '')}`}
-                    class="inline-flex items-center gap-1.5 rounded-full bg-white border border-slate-200 hover:border-blue-300 hover:bg-blue-50 px-3.5 py-1 text-xs font-extrabold text-slate-700 hover:text-blue-600 transition shadow-xs"
+                    href={`/api/auth/google?roomCode=${encodeURIComponent(code)}&title=${encodeURIComponent(event?.title || '')}&description=${encodeURIComponent(event?.description || '')}&hostName=${encodeURIComponent(event?.hostName || '')}&hostAvatar=${encodeURIComponent(event?.hostAvatar || '')}&resourcesDriveUrl=${encodeURIComponent(activeDriveUrl || '')}&driveFolderId=${encodeURIComponent(effectiveFolderId || '')}`}
+                    class="inline-flex items-center gap-1.5 rounded-full bg-white border border-slate-200 hover:border-blue-300 hover:bg-blue-50 px-3.5 py-1 text-xs font-extrabold text-slate-700 hover:text-blue-600 transition shadow-xs cursor-pointer"
                   >
                     <LogIn size={14} />
                     Connect Google Account
                   </a>
-                ) : null}
+                )}
               </div>
             </div>
 
@@ -438,15 +456,25 @@ const MediaView = () => {
 
           {/* Action Buttons (Bottom Right) */}
           <div class="relative z-10 flex items-center justify-end gap-3 mt-6 flex-wrap">
-            {driveFolderUrl && (
+            <a
+              href={driveFolderUrl || 'https://drive.google.com'}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex items-center gap-2 rounded-2xl bg-white hover:bg-slate-100 border border-slate-200 text-[#1a73e8] font-extrabold text-xs px-5 py-3 transition cursor-pointer shadow-2xs"
+              title="Visit Google Drive Folder"
+            >
+              <ExternalLink size={14} />
+              <span>Visit Drive Folder</span>
+            </a>
+
+            {!driveOAuthConnected && (
               <a
-                href={driveFolderUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                class="inline-flex items-center gap-2 rounded-2xl bg-white hover:bg-slate-100 border border-slate-200 text-[#1a73e8] font-extrabold text-xs px-5 py-3 transition cursor-pointer shadow-2xs"
+                href={`/api/auth/google?roomCode=${encodeURIComponent(code)}&title=${encodeURIComponent(event?.title || '')}&description=${encodeURIComponent(event?.description || '')}&hostName=${encodeURIComponent(event?.hostName || '')}&hostAvatar=${encodeURIComponent(event?.hostAvatar || '')}&resourcesDriveUrl=${encodeURIComponent(activeDriveUrl || '')}&driveFolderId=${encodeURIComponent(effectiveFolderId || '')}`}
+                class="inline-flex items-center gap-2 rounded-2xl bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 font-extrabold text-xs px-5 py-3 transition cursor-pointer shadow-2xs"
+                title="Connect to Google Drive Folder"
               >
-                <ExternalLink size={14} />
-                <span>Visit Drive Folder</span>
+                <GoogleDriveLogo />
+                <span>Connect to Folder</span>
               </a>
             )}
 
