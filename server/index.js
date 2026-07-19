@@ -19,12 +19,25 @@ connectDB();
 const app = express();
 const server = http.createServer(app);
 
-// Configure CORS — must specify exact origin (not '*') so cookies are sent
-const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3000';
+// Configure CORS for standalone backend (Render) and Vercel frontend
+const CLIENT_URL = process.env.CLIENT_URL || 'https://linkdln-undo.vercel.app';
+const allowedOrigins = [
+  CLIENT_URL,
+  'https://linkdln-undo.vercel.app',
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'http://localhost:5173'
+].filter(Boolean);
+
 const corsOptions = {
-  origin: (origin, callback) => callback(null, true),
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-  credentials: true
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
+      return callback(null, true);
+    }
+    return callback(null, true);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
 };
 
 app.use(cors(corsOptions));
@@ -32,34 +45,33 @@ app.use(cookieParser());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-// Set up Socket.io safely
-let io = null;
-try {
-  io = new Server(server, { cors: corsOptions });
-  socketHandler(io);
-} catch (err) {
-  console.warn('Socket.io setup skipped in serverless mode');
-}
+// Set up Socket.io for real-time WebSockets on Render
+const io = new Server(server, {
+  cors: corsOptions
+});
+socketHandler(io);
 
 // Make Socket.io instance accessible in Express route handlers
 app.set('socketio', io);
+
+// Health check route for Render
+app.get('/', (req, res) => {
+  res.json({ status: 'ok', message: 'linkdln.undo API server is healthy.' });
+});
+
+app.get('/api', (req, res) => {
+  res.json({ status: 'ok', message: 'linkdln.undo API is running.' });
+});
 
 // Mount API routes
 app.use('/api/events', eventRoutes);
 app.use('/api/attendees', attendeeRoutes);
 app.use('/api/auth', authRoutes);
 
-// Base Route
-app.get('/api', (req, res) => {
-  res.send('linkdln.undo API is running...');
-});
-
-// Define PORT and start listening
+// Start standalone HTTP & WebSocket server
 const PORT = process.env.PORT || 5000;
-if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
-  server.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-  });
-}
+server.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+});
 
 export default app;

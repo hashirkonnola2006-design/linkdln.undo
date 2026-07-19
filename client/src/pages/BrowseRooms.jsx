@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { UserLayout } from '../components/Layouts';
+import { API_BASE_URL } from '../config.js';
 import { Search, SlidersHorizontal, Users, Calendar, ArrowUpRight, Check, Compass, LogIn } from 'lucide-react';
 
 const organicPalettes = [
@@ -48,11 +49,11 @@ const BrowseRooms = () => {
           localStorage.removeItem(`room_creator_${r.code}`);
           localStorage.removeItem(`attendee_${r.code}`);
           localStorage.removeItem(`room_notes_${r.code}`);
-          fetch(`/api/events/${r.code}`, { method: 'DELETE' }).catch(() => {});
+          fetch(`${API_BASE_URL}/api/events/${r.code}`, { method: 'DELETE' }).catch(() => {});
         }
       });
 
-      let url = `/api/events?search=${encodeURIComponent(search)}`;
+      let url = `${API_BASE_URL}/api/events?search=${encodeURIComponent(search)}`;
       if (selectedTemplate !== 'All') url += `&template=${selectedTemplate}`;
       if (selectedStatus !== 'All') url += `&status=${selectedStatus}`;
       if (selectedDate) url += `&date=${selectedDate}`;

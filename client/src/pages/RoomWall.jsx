@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { RoomLayout } from '../components/Layouts';
 import { useSocket } from '../hooks/useSocket';
+import { API_BASE_URL } from '../config.js';
 import { 
   Search, 
   Heart, 
@@ -115,7 +116,7 @@ const RoomWall = () => {
   useEffect(() => {
     const fetchEvent = async () => {
       try {
-        const res = await fetch(`/api/events/${code}`);
+        const res = await fetch(`${API_BASE_URL}/api/events/${code}`);
         if (!res.ok) throw new Error('Room not found');
         const data = await res.json();
         setEvent(data);
@@ -144,7 +145,7 @@ const RoomWall = () => {
     setNotes(localSaved);
 
     try {
-      const res = await fetch(`/api/events/${code}/notes`);
+      const res = await fetch(`${API_BASE_URL}/api/events/${code}/notes`);
       if (res.ok) {
         const serverData = await res.json();
         if (serverData && serverData.length > 0) {
@@ -187,7 +188,7 @@ const RoomWall = () => {
     });
 
     try {
-      await fetch(`/api/events/${code}/notes/${noteId}/like`, {
+      await fetch(`${API_BASE_URL}/api/events/${code}/notes/${noteId}/like`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ attendeeId: attendee._id })
@@ -220,7 +221,7 @@ const RoomWall = () => {
     });
 
     try {
-      await fetch(`/api/events/${code}/notes`, {
+      await fetch(`${API_BASE_URL}/api/events/${code}/notes`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newNote)

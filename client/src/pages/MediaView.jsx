@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { RoomLayout } from '../components/Layouts';
+import { API_BASE_URL } from '../config.js';
 import {
   Camera,
   Video,
@@ -93,7 +94,7 @@ const MediaView = () => {
 
   const handleConnectGoogle = (e) => {
     if (e) e.preventDefault();
-    const targetUrl = `/api/auth/google?roomCode=${encodeURIComponent(code)}&title=${encodeURIComponent(event?.title || '')}&description=${encodeURIComponent(event?.description || '')}&hostName=${encodeURIComponent(event?.hostName || '')}&resourcesDriveUrl=${encodeURIComponent(activeDriveUrl || '')}&driveFolderId=${encodeURIComponent(effectiveFolderId || '')}`;
+    const targetUrl = `${API_BASE_URL}/api/auth/google?roomCode=${encodeURIComponent(code)}&title=${encodeURIComponent(event?.title || '')}&description=${encodeURIComponent(event?.description || '')}&hostName=${encodeURIComponent(event?.hostName || '')}&resourcesDriveUrl=${encodeURIComponent(activeDriveUrl || '')}&driveFolderId=${encodeURIComponent(effectiveFolderId || '')}`;
     try {
       window.location.href = targetUrl;
     } catch (_) {}
@@ -120,7 +121,7 @@ const MediaView = () => {
 
     // Try DB update
     try {
-      await fetch(`/api/events/${code}`, {
+      await fetch(`${API_BASE_URL}/api/events/${code}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ resourcesDriveUrl: newUrl, driveFolderId: extractedId })
@@ -200,7 +201,7 @@ const MediaView = () => {
     try {
       let currentEvent = null;
       // 1. Load event details + OAuth status
-      const evRes = await fetch(`/api/events/${code}`);
+      const evRes = await fetch(`${API_BASE_URL}/api/events/${code}`);
       if (evRes.ok) {
         currentEvent = await evRes.json();
         setEvent(currentEvent);
@@ -229,7 +230,7 @@ const MediaView = () => {
 
       let folderUrlParam = driveUrlToUse ? `?folderUrl=${encodeURIComponent(driveUrlToUse)}` : '';
 
-      const driveRes = await fetch(`/api/events/${code}/drive-files${folderUrlParam}`);
+      const driveRes = await fetch(`${API_BASE_URL}/api/events/${code}/drive-files${folderUrlParam}`);
       if (driveRes.ok) {
         const driveData = await driveRes.json();
         setDriveFiles(driveData.files || []);
@@ -250,7 +251,7 @@ const MediaView = () => {
       let captures = [];
       let fetchedFromDb = false;
       try {
-        const mediaRes = await fetch(`/api/events/${code}/media`);
+        const mediaRes = await fetch(`${API_BASE_URL}/api/events/${code}/media`);
         if (mediaRes.ok) {
           const mediaData = await mediaRes.json();
           if (Array.isArray(mediaData)) {
@@ -322,7 +323,7 @@ const MediaView = () => {
       };
 
       try {
-        const res = await fetch(`/api/events/${code}/media/upload`, {
+        const res = await fetch(`${API_BASE_URL}/api/events/${code}/media/upload`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
@@ -374,7 +375,7 @@ const MediaView = () => {
     const fileId = item.driveFileId || item.id || (item.source === 'drive' ? item._id : '');
 
     try {
-      await fetch(`/api/events/${code}/media/${itemId}?fileId=${fileId}`, {
+      await fetch(`${API_BASE_URL}/api/events/${code}/media/${itemId}?fileId=${fileId}`, {
         method: 'DELETE'
       });
     } catch (_) {}
@@ -984,7 +985,7 @@ const MediaCaptureModal = ({ code, attendee, onClose, onMediaCaptured }) => {
     };
 
     try {
-      const res = await fetch(`/api/events/${code}/media/upload`, {
+      const res = await fetch(`${API_BASE_URL}/api/events/${code}/media/upload`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)

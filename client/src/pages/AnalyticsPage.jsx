@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { OrganizerLayout, UserLayout } from '../components/Layouts';
+import { API_BASE_URL } from '../config.js';
 import { 
   TrendingUp, 
   Users, 
@@ -72,7 +73,7 @@ const AnalyticsPage = () => {
     if (!confirmDelete) return;
 
     try {
-      await fetch(`/api/events/${code}`, { method: 'DELETE' });
+      await fetch(`${API_BASE_URL}/api/events/${code}`, { method: 'DELETE' });
     } catch (err) {}
 
     // 1. Remove room from local_created_rooms array in localStorage
@@ -111,7 +112,7 @@ const AnalyticsPage = () => {
   useEffect(() => {
     const fetchRooms = async () => {
       try {
-        const res = await fetch('/api/events');
+        const res = await fetch(`${API_BASE_URL}/api/events`);
         if (res.ok) {
           const data = await res.json();
           setRooms(data);
@@ -125,7 +126,7 @@ const AnalyticsPage = () => {
     const fetchEvent = async () => {
       setLoading(true);
       try {
-        const evRes = await fetch(`/api/events/${code}`);
+        const evRes = await fetch(`${API_BASE_URL}/api/events/${code}`);
         if (evRes.ok) {
           const evData = await evRes.json();
           setEvent(evData);

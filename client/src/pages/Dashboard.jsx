@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { OrganizerLayout, UserLayout } from '../components/Layouts';
+import { API_BASE_URL } from '../config.js';
 import { 
   ArrowUpRight, 
   ArrowRight,
@@ -110,7 +111,7 @@ const Dashboard = () => {
     }
 
     try {
-      await fetch(`/api/events/${code}`, { method: 'DELETE' });
+      await fetch(`${API_BASE_URL}/api/events/${code}`, { method: 'DELETE' });
     } catch (err) {
       console.error('Error deleting event room:', err);
     }
@@ -137,7 +138,7 @@ const Dashboard = () => {
     const fetchEventData = async () => {
       setLoading(true);
       try {
-        const res = await fetch(`/api/events/${code}`);
+        const res = await fetch(`${API_BASE_URL}/api/events/${code}`);
         if (res.ok) {
           const data = await res.json();
           setEvent(data);
@@ -162,7 +163,7 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchRooms = async () => {
       try {
-        const res = await fetch('/api/events');
+        const res = await fetch(`${API_BASE_URL}/api/events`);
         if (res.ok) {
           const data = await res.json();
           setRooms(data);

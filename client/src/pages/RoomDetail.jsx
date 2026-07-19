@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { UserLayout } from '../components/Layouts';
+import { API_BASE_URL } from '../config.js';
 import { LogIn, Users, Tag, Check, Calendar, ArrowRight, X, AlertCircle } from 'lucide-react';
 
 const RoomDetail = () => {
@@ -55,7 +56,7 @@ const RoomDetail = () => {
   useEffect(() => {
     const fetchEvent = async () => {
       try {
-        const res = await fetch(`/api/events/${code}`);
+        const res = await fetch(`${API_BASE_URL}/api/events/${code}`);
         if (!res.ok) {
           throw new Error('Event not found.');
         }
@@ -98,7 +99,7 @@ const RoomDetail = () => {
 
     let attendeeData = null;
     try {
-      const res = await fetch('/api/attendees', {
+      const res = await fetch(`${API_BASE_URL}/api/attendees`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

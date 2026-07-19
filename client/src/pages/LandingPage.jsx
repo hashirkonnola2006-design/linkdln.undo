@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, PlusCircle } from 'lucide-react';
 import { PublicNavbar, PublicFooter } from '../components/PublicNavbar';
+import { API_BASE_URL } from '../config.js';
 
 const LandingPage = () => {
   const navigate = useNavigate();
@@ -20,7 +21,7 @@ const LandingPage = () => {
   useEffect(() => {
     const loadRealRooms = async () => {
       try {
-        const res = await fetch('/api/events');
+        const res = await fetch(`${API_BASE_URL}/api/events`);
         const localRooms = JSON.parse(localStorage.getItem('local_created_rooms') || '[]');
         let serverData = [];
         if (res.ok) {

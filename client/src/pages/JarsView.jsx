@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { RoomLayout } from '../components/Layouts';
 import { useSocket } from '../hooks/useSocket';
+import { API_BASE_URL } from '../config.js';
 import { 
   Code2, 
   GraduationCap, 
@@ -76,7 +77,7 @@ const JarsView = () => {
   useEffect(() => {
     const fetchEvent = async () => {
       try {
-        const res = await fetch(`/api/events/${code}`);
+        const res = await fetch(`${API_BASE_URL}/api/events/${code}`);
         if (!res.ok) throw new Error('Room not found');
         const data = await res.json();
         setEvent(data);
@@ -102,7 +103,7 @@ const JarsView = () => {
   // Fetch Jars from DB
   const loadJars = async () => {
     try {
-      const res = await fetch(`/api/events/${code}/jars`);
+      const res = await fetch(`${API_BASE_URL}/api/events/${code}/jars`);
       if (res.ok) {
         const data = await res.json();
         setJars(data || []);
@@ -125,7 +126,7 @@ const JarsView = () => {
     if (!event) return;
     setRegrouping(true);
     try {
-      const res = await fetch(`/api/events/${code}/group`, {
+      const res = await fetch(`${API_BASE_URL}/api/events/${code}/group`, {
         method: 'POST'
       });
       if (res.ok) {

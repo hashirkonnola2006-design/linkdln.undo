@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { UserLayout } from '../components/Layouts';
+import { API_BASE_URL } from '../config.js';
 import { 
   Zap, 
   ShieldCheck, 
@@ -106,7 +107,7 @@ const CreateRoom = () => {
     let createdRoom = null;
 
     try {
-      const response = await fetch('/api/events', {
+      const response = await fetch(`${API_BASE_URL}/api/events`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),

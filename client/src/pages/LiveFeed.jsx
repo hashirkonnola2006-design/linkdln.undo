@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { RoomLayout } from '../components/Layouts';
 import { useSocket } from '../hooks/useSocket';
+import { API_BASE_URL } from '../config.js';
 import { 
   Search, 
   UserPlus, 
@@ -78,7 +79,7 @@ const LiveFeed = () => {
   useEffect(() => {
     const fetchEvent = async () => {
       try {
-        const res = await fetch(`/api/events/${code}`);
+        const res = await fetch(`${API_BASE_URL}/api/events/${code}`);
         if (!res.ok) throw new Error('Room not found');
         const data = await res.json();
         setEvent(data);
