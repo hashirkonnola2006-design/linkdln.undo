@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "npm run build --prefix client",
+    "build": "cd client && npm install && npm run build",
     "dev:server": "npm run dev --prefix server",
     "dev:client": "npm run dev --prefix client",
     "dev": "npx concurrently \"npm run dev --prefix server\" \"npm run dev --prefix client\""
