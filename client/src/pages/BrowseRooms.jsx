@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { UserLayout } from '../components/Layouts';
-import { Search, SlidersHorizontal, Users, Calendar, ArrowUpRight, Check, Compass, Trash2, LogIn } from 'lucide-react';
+import { Search, SlidersHorizontal, Users, Calendar, ArrowUpRight, Check, Compass, LogIn } from 'lucide-react';
 
 const organicPalettes = [
   { bg: 'from-[#1a73e8] to-[#0f172a]', shape1: 'bg-[#fbbf24]', shape2: 'bg-[#1a73e8]', dot: 'bg-[#fbbf24]' },
@@ -15,8 +15,8 @@ const organicPalettes = [
 const BrowseRooms = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const searchParams = new URLSearchParams(location.search);
-  const initialSearch = searchParams.get('search') || '';
+  const queryParams = new URLSearchParams(location.search);
+  const initialSearch = queryParams.get('search') || '';
 
   const [rooms, setRooms] = useState([]);
   const [activeTab, setActiveTab] = useState('all'); // 'all' | 'my'
@@ -26,30 +26,17 @@ const BrowseRooms = () => {
   const [selectedDate, setSelectedDate] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleDeleteSingleRoom = async (e, roomCode, roomTitle) => {
-    if (e) e.stopPropagation();
-    const confirmDelete = window.confirm(`Are you sure you want to delete "${roomTitle || roomCode}"?`);
-    if (!confirmDelete) return;
-
-    try {
-      await fetch(`/api/events/${roomCode}`, { method: 'DELETE' });
-    } catch (err) {}
-
-    const localRooms = JSON.parse(localStorage.getItem('local_created_rooms') || '[]');
-    const updatedLocal = localRooms.filter(r => r.code !== roomCode);
-    localStorage.setItem('local_created_rooms', JSON.stringify(updatedLocal));
-
-    localStorage.removeItem(`room_creator_${roomCode}`);
-    localStorage.removeItem(`attendee_${roomCode}`);
-    localStorage.removeItem(`room_notes_${roomCode}`);
-
-    window.dispatchEvent(new CustomEvent('roomDeleted', { detail: { code: roomCode } }));
-    fetchRooms();
-  };
-
   const fetchRooms = async () => {
     setLoading(true);
     try {
+      // Clean out local_created_rooms if it contains test rooms
+      const rawLocal = localStorage.getItem('local_created_rooms');
+      if (rawLocal && (rawLocal.includes('test 01') || rawLocal.includes('heheheheh'))) {
+        const parsed = JSON.parse(rawLocal || '[]');
+        const cleaned = parsed.filter(r => r.title !== 'test 01' && r.title !== 'heheheheh');
+        localStorage.setItem('local_created_rooms', JSON.stringify(cleaned));
+      }
+
       let url = `/api/events?search=${encodeURIComponent(search)}`;
       if (selectedTemplate !== 'All') url += `&template=${selectedTemplate}`;
       if (selectedStatus !== 'All') url += `&status=${selectedStatus}`;
@@ -66,17 +53,7 @@ const BrowseRooms = () => {
       // Merge server rooms and locally created rooms
       const mergedMap = new Map();
       [...localRooms, ...serverData].forEach(item => {
-        if (item && item.code) {
-          // Auto purge test 01 and heheheheh if present
-          if (item.title === 'test 01' || item.title === 'heheheheh') {
-            fetch(`/api/events/${item.code}`, { method: 'DELETE' }).catch(() => {});
-            const updated = (JSON.parse(localStorage.getItem('local_created_rooms') || '[]')).filter(r => r.code !== item.code);
-            localStorage.setItem('local_created_rooms', JSON.stringify(updated));
-            localStorage.removeItem(`room_creator_${item.code}`);
-            localStorage.removeItem(`attendee_${item.code}`);
-            localStorage.removeItem(`room_notes_${item.code}`);
-            return;
-          }
+        if (item && item.code && item.title !== 'test 01' && item.title !== 'heheheheh') {
           mergedMap.set(item.code, item);
         }
       });
@@ -100,7 +77,8 @@ const BrowseRooms = () => {
     } catch (err) {
       console.error('Error fetching rooms:', err);
       const localRooms = JSON.parse(localStorage.getItem('local_created_rooms') || '[]');
-      setRooms(localRooms);
+      const cleaned = localRooms.filter(r => r.title !== 'test 01' && r.title !== 'heheheheh');
+      setRooms(cleaned);
     } finally {
       setLoading(false);
     }
@@ -320,27 +298,17 @@ const BrowseRooms = () => {
                               {room.onlineCount || 1} Online
                             </div>
                             
-                            <div class="flex items-center gap-2">
-                              <button
-                                onClick={(e) => handleDeleteSingleRoom(e, room.code, room.title)}
-                                class="p-2.5 rounded-xl border border-slate-200 text-slate-400 hover:text-red-600 hover:bg-red-50 hover:border-red-200 transition cursor-pointer"
-                                title="Delete Room"
-                              >
-                                <Trash2 size={14} />
-                              </button>
-
-                              <button
-                                onClick={handleCardJoin}
-                                class={`font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow-sm flex items-center gap-1.5 cursor-pointer ${
-                                  isJoinedOrCreated
-                                    ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                                    : 'bg-primary hover:bg-primary-dark text-white'
-                                }`}
-                              >
-                                <span>{isJoinedOrCreated ? 'Visit Room' : 'Join'}</span>
-                                <ArrowUpRight size={14} />
-                              </button>
-                            </div>
+                            <button
+                              onClick={handleCardJoin}
+                              class={`font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow-sm flex items-center gap-1.5 cursor-pointer ${
+                                isJoinedOrCreated
+                                  ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                                  : 'bg-primary hover:bg-primary-dark text-white'
+                              }`}
+                            >
+                              <span>{isJoinedOrCreated ? 'Visit Room' : 'Join'}</span>
+                              <ArrowUpRight size={14} />
+                            </button>
                           </div>
                         </div>
                       </div>

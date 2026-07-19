@@ -57,6 +57,9 @@ router.post('/', async (req, res) => {
 // Browse public event rooms (with filters)
 router.get('/', async (req, res) => {
   try {
+    // Purge legacy test rooms
+    await Event.deleteMany({ title: { $in: ['test 01', 'heheheheh', 'PEDFEFE', 'pedfefe'] } });
+
     const { search, template, status, date } = req.query;
     let query = { visibility: 'Public' };
 
