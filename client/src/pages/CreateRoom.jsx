@@ -26,8 +26,8 @@ const CreateRoom = () => {
     joinMode: 'Open',
     dateTime: '',
     resourcesDriveUrl: '',
-    hostName: 'Alosh Denny',
-    hostAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&h=100'
+    hostName: '',
+    hostAvatar: ''
   });
 
   const [loading, setLoading] = useState(false);
@@ -44,20 +44,18 @@ const CreateRoom = () => {
     { bg: 'from-[#1e293b] to-[#0f172a]', shape1: 'bg-[#0284c7]', shape2: 'bg-[#10b981]', dot: 'bg-[#0284c7]' },
     // 2: Deep Blue + Dark Indigo + Soft Sky
     { bg: 'from-[#1d4ed8] to-[#1e1b4b]', shape1: 'bg-[#3b82f6]', shape2: 'bg-[#60a5fa]', dot: 'bg-[#3b82f6]' },
-    // 3: Deep Violet + Dark Indigo + Rose Coral
+    // 3: Dark Violet + Deep Plum + Rose
     { bg: 'from-[#4c1d95] to-[#0f172a]', shape1: 'bg-[#f43f5e]', shape2: 'bg-[#8b5cf6]', dot: 'bg-[#f43f5e]' },
-    // 4: Emerald Forest + Deep Teal + Amber Gold
+    // 4: Emerald Forest + Deep Teal + Amber
     { bg: 'from-[#064e3b] to-[#022c22]', shape1: 'bg-[#f59e0b]', shape2: 'bg-[#10b981]', dot: 'bg-[#f59e0b]' },
-    // 5: Cyan Slate + Midnight + Electric Sky
+    // 5: Cyan Ocean + Dark Blue + Bright Sky
     { bg: 'from-[#164e63] to-[#082f49]', shape1: 'bg-[#38bdf8]', shape2: 'bg-[#06b6d4]', dot: 'bg-[#38bdf8]' }
   ];
 
   const templates = ['Networking', 'Workshop', 'Meetup', 'Conference', 'Other'];
 
   const handleRegeneratePoster = () => {
-    const nextIdx = (paletteIndex + 1) % organicPalettes.length;
-    setPaletteIndex(nextIdx);
-    setFormData(prev => ({ ...prev, posterPaletteIndex: nextIdx }));
+    setPaletteIndex(prev => (prev + 1) % organicPalettes.length);
   };
 
   const handleChange = (e) => {
@@ -66,17 +64,18 @@ const CreateRoom = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleTemplateClick = (template) => {
-    handleRegeneratePoster();
-    setFormData(prev => ({ ...prev, template }));
+  const handleTemplateClick = (templateName) => {
+    setFormData(prev => ({ ...prev, template: templateName }));
+    setPosterMode('template');
   };
 
   const handleImageUpload = (e) => {
-    const file = e.target.files && e.target.files[0];
+    const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
         setCustomPosterUrl(reader.result);
+        setPosterMode('custom');
         setFormData(prev => ({ ...prev, posterUrl: reader.result }));
       };
       reader.readAsDataURL(file);
@@ -93,7 +92,7 @@ const CreateRoom = () => {
     setLoading(true);
     setError('');
 
-    const hostProfile = JSON.parse(localStorage.getItem('global_profile') || '{}');
+    const hostProfile = JSON.parse(localStorage.getItem('session_user') || localStorage.getItem('global_profile') || '{}');
     const finalHostName = hostProfile.name?.trim() || formData.hostName?.trim() || 'Organizer';
     const finalHostAvatar = hostProfile.avatar || formData.hostAvatar || `https://api.dicebear.com/7.x/open-peeps/svg?seed=${encodeURIComponent(finalHostName)}`;
 

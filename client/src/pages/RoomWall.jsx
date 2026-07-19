@@ -73,19 +73,19 @@ const RoomWall = () => {
       if (saved) {
         setAttendee(JSON.parse(saved));
       } else {
-        const globalProfile = localStorage.getItem('global_profile');
+        const sessionUser = localStorage.getItem('session_user') || localStorage.getItem('global_profile');
         const isCreator = localStorage.getItem(`room_creator_${code}`) === 'true';
-        if (globalProfile) {
+        if (sessionUser) {
           try {
-            const parsed = JSON.parse(globalProfile);
+            const parsed = JSON.parse(sessionUser);
             if (parsed.name) {
               const selfAttendee = {
                 _id: 'user_me',
                 name: parsed.name,
                 email: parsed.email || '',
                 role: parsed.role || (isCreator ? 'Event Host' : 'Attendee'),
-                company: parsed.company || 'Community',
-                avatar: parsed.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&h=100',
+                company: parsed.company || '',
+                avatar: parsed.avatar || `https://api.dicebear.com/7.x/open-peeps/svg?seed=${encodeURIComponent(parsed.name)}`,
                 isHost: isCreator,
                 isOnline: true
               };
@@ -98,10 +98,9 @@ const RoomWall = () => {
         
         const demoSelf = {
           _id: 'user_me',
-          name: 'Alex Rivera',
-          role: 'Event Host',
-          avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&h=100',
-          isHost: true,
+          name: 'Attendee',
+          role: isCreator ? 'Event Host' : 'Attendee',
+          isHost: isCreator,
           isOnline: true
         };
         setAttendee(demoSelf);
@@ -122,9 +121,9 @@ const RoomWall = () => {
         setEvent(data);
       } catch (err) {
         setEvent({
-          _id: 'mock1',
+          _id: 'room_' + code,
           code: code,
-          title: 'Design Sync Room'
+          title: 'Room Wall'
         });
       } finally {
         setLoading(false);
@@ -196,8 +195,8 @@ const RoomWall = () => {
       content: noteForm.content,
       color: noteForm.color,
       attachment: noteForm.attachment,
-      authorName: attendee?.name || 'Alex Rivera',
-      authorAvatar: attendee?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&h=100',
+      authorName: attendee?.name || 'Attendee',
+      authorAvatar: attendee?.avatar || `https://api.dicebear.com/7.x/open-peeps/svg?seed=${encodeURIComponent(attendee?.name || 'note')}`,
       likes: 0,
       likedBy: [],
       createdAt: new Date().toISOString()
@@ -243,7 +242,7 @@ const RoomWall = () => {
     );
   }
 
-  const activeNotesList = (notes && notes.length > 0) ? notes : defaultNotes;
+  const activeNotesList = notes || [];
 
   const filteredNotes = activeNotesList.filter(note =>
     (note.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
