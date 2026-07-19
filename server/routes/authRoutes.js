@@ -7,13 +7,14 @@ import { encryptToken } from '../utils/encryption.js';
 const router = express.Router();
 
 // ─── Cookie settings ──────────────────────────────────────────────────────────
+const isProd = process.env.NODE_ENV === 'production' || Boolean(process.env.VERCEL);
 const COOKIE_NAME = 'session_id';
-const COOKIE_OPTIONS = {
+const getCookieOptions = () => ({
   httpOnly: true,
-  sameSite: 'lax',
-  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-  // secure: true  // enable in production (HTTPS only)
-};
+  sameSite: isProd ? 'none' : 'lax',
+  secure: isProd,
+  maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+});
 
 // ─── Username-only Auth ───────────────────────────────────────────────────────
 
@@ -32,7 +33,7 @@ router.post('/login', async (req, res) => {
     const user = new User({ name: name.trim(), sessionId });
     await user.save();
 
-    res.cookie(COOKIE_NAME, sessionId, COOKIE_OPTIONS);
+    res.cookie(COOKIE_NAME, sessionId, getCookieOptions());
     res.status(201).json({
       _id: user._id,
       name: user.name,
@@ -119,25 +120,45 @@ router.patch('/me', async (req, res) => {
  * Clears the session cookie.
  */
 router.post('/logout', (req, res) => {
-  res.clearCookie(COOKIE_NAME, { httpOnly: true, sameSite: 'lax' });
+  res.clearCookie(COOKIE_NAME, getCookieOptions());
   res.json({ message: 'Logged out.' });
 });
 
-// ─── Google Drive OAuth (per-room admin only — untouched) ─────────────────────
+// ─── Google Drive OAuth ───────────────────────────────────────────────────────
 
+// Helper: Verify all required OAuth environment variables exist
+const checkRequiredOAuthEnvVars = (res) => {
+  const missing = [];
+  if (!process.env.GOOGLE_CLIENT_ID) missing.push('GOOGLE_CLIENT_ID');
+  if (!process.env.GOOGLE_CLIENT_SECRET) missing.push('GOOGLE_CLIENT_SECRET');
+  if (!process.env.GOOGLE_API_KEY) missing.push('GOOGLE_API_KEY');
+  if (!process.env.MONGODB_URI) missing.push('MONGODB_URI');
 
+  if (missing.length > 0) {
+    const errorMsg = `[OAuth Error] Missing required environment variable(s): ${missing.join(', ')}`;
+    console.error(errorMsg);
+    res.status(500).json({
+      error: 'ENVIRONMENT_VARIABLE_MISSING',
+      message: errorMsg,
+      missing
+    });
+    return false;
+  }
+  return true;
+};
 
-// Build OAuth2 client
-const getOAuth2Client = () => {
+// Helper: Build dynamic OAuth2 client using SERVER_BASE_URL or request headers
+const getOAuth2Client = (req) => {
+  const protocol = req ? (req.headers['x-forwarded-proto'] || req.protocol || 'https') : 'https';
+  const host = req ? (req.headers['x-forwarded-host'] || req.headers.host) : '';
+  const serverBaseUrl = process.env.SERVER_BASE_URL || (host ? `${protocol}://${host}` : '');
+
   return new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET,
-    `${process.env.SERVER_BASE_URL}/api/auth/google/callback`
+    `${serverBaseUrl}/api/auth/google/callback`
   );
 };
-
-// Client app base URL
-const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3000';
 
 // Helper: extract Google Drive folder ID from URL or plain ID
 const extractDriveFolderId = (urlOrId) => {
@@ -155,39 +176,24 @@ const extractDriveFolderId = (urlOrId) => {
  * Initiates Google OAuth2 flow. Redirects to Google consent page.
  */
 router.get('/google', (req, res) => {
-  const { roomCode, title, hostName, hostAvatar, resourcesDriveUrl, driveFolderId } = req.query;
-
-  const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
-  const host = req.headers['x-forwarded-host'] || req.headers.host;
-  const baseUrl = process.env.CLIENT_URL || `${protocol}://${host}`;
-
-  if (!roomCode) {
-    return res.redirect(`${baseUrl}/rooms`);
-  }
-
-  const clientId = process.env.GOOGLE_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-
-  if (!clientId || !clientSecret) {
-    console.warn('⚠️ GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET missing on server.');
-    return res.redirect(`${baseUrl}/rooms/${roomCode}/media?oauth=error&msg=${encodeURIComponent('Google OAuth API keys not set on server')}`);
-  }
-
   try {
-    const serverBaseUrl = process.env.SERVER_BASE_URL || `${protocol}://${host}`;
-    const oauth2Client = new google.auth.OAuth2(
-      clientId,
-      clientSecret,
-      `${serverBaseUrl}/api/auth/google/callback`
-    );
+    if (!checkRequiredOAuthEnvVars(res)) return;
 
+    const { roomCode, title, hostName, hostAvatar, resourcesDriveUrl, driveFolderId } = req.query;
+
+    if (!roomCode) {
+      const msg = '[OAuth Error] Missing roomCode query parameter.';
+      console.error(msg);
+      return res.status(400).json({ error: 'MISSING_ROOM_CODE', message: msg });
+    }
+
+    const oauth2Client = getOAuth2Client(req);
     const scopes = [
       'https://www.googleapis.com/auth/drive.file',
       'https://www.googleapis.com/auth/userinfo.email',
       'https://www.googleapis.com/auth/userinfo.profile'
     ];
 
-    // Encode room metadata in state so we can upsert it on callback
     const stateData = JSON.stringify({
       roomCode,
       title: title || 'Room ' + roomCode,
@@ -205,9 +211,12 @@ router.get('/google', (req, res) => {
     });
 
     res.redirect(authUrl);
-  } catch (err) {
-    console.error('Google OAuth init error:', err);
-    res.redirect(`${baseUrl}/rooms/${roomCode}/media?oauth=error&msg=${encodeURIComponent(err.message)}`);
+  } catch (error) {
+    console.error('[Google OAuth Initiation Error]:', error);
+    res.status(500).json({
+      error: 'OAUTH_INIT_FAILED',
+      message: `Failed to initiate Google OAuth: ${error.message}`
+    });
   }
 });
 
@@ -216,47 +225,47 @@ router.get('/google', (req, res) => {
  * Google redirects here after user approves. Exchange code for tokens.
  */
 router.get('/google/callback', async (req, res) => {
-  const { code, state: stateB64, error } = req.query;
-
   const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
   const host = req.headers['x-forwarded-host'] || req.headers.host;
-  const baseUrl = process.env.CLIENT_URL || `${protocol}://${host}`;
-
-  // Decode state
-  let roomCode = '';
-  let roomMeta = {};
-  try {
-    const decoded = JSON.parse(Buffer.from(stateB64 || '', 'base64').toString('utf8'));
-    roomCode = decoded.roomCode || '';
-    roomMeta = decoded;
-  } catch (_) {
-    roomCode = stateB64 || '';
-  }
-
-  // If user denied access
-  if (error) {
-    return res.redirect(`${baseUrl}/rooms/${roomCode}/media?oauth=denied`);
-  }
-
-  if (!code || !roomCode) {
-    return res.redirect(`${baseUrl}/rooms`);
-  }
+  const clientBaseUrl = process.env.CLIENT_URL || process.env.SERVER_BASE_URL || `${protocol}://${host}`;
 
   try {
-    const oauth2Client = getOAuth2Client();
+    if (!checkRequiredOAuthEnvVars(res)) return;
+
+    const { code, state: stateB64, error } = req.query;
+
+    let roomCode = '';
+    let roomMeta = {};
+    try {
+      const decoded = JSON.parse(Buffer.from(stateB64 || '', 'base64').toString('utf8'));
+      roomCode = decoded.roomCode || '';
+      roomMeta = decoded;
+    } catch (_) {
+      roomCode = stateB64 || '';
+    }
+
+    if (error) {
+      console.error('[Google OAuth Callback User Denied]:', error);
+      return res.redirect(`${clientBaseUrl}/rooms/${roomCode}/media?oauth=denied`);
+    }
+
+    if (!code || !roomCode) {
+      const msg = '[Google OAuth Callback Error] Missing authorization code or roomCode.';
+      console.error(msg);
+      return res.status(400).json({ error: 'MISSING_CODE_OR_ROOM', message: msg });
+    }
+
+    const oauth2Client = getOAuth2Client(req);
     const { tokens } = await oauth2Client.getToken(code);
     const { access_token, refresh_token } = tokens;
 
-    console.log('🔑 Google OAuth Tokens Received:', {
+    console.log('[Google OAuth Tokens Received Successfully] Room:', roomCode, {
       hasAccessToken: Boolean(access_token),
       hasRefreshToken: Boolean(refresh_token)
     });
 
-    // Find or upsert event in DB
     let event = await Event.findOne({ code: roomCode });
-
     if (!event) {
-      // Room not in DB — create it from state metadata
       try {
         event = new Event({
           code: roomCode,
@@ -272,23 +281,23 @@ router.get('/google/callback', async (req, res) => {
           dateTime: new Date()
         });
         await event.save();
-        console.log('✅ Created DB event for room:', roomCode);
+        console.log('[Google OAuth] Created new DB event for room:', roomCode);
       } catch (createErr) {
-        console.error('Failed to create room in DB:', createErr.message);
-        return res.redirect(`${CLIENT_URL}/rooms/${roomCode}/media?oauth=room_create_failed`);
+        console.error('[Google OAuth DB Creation Error]:', createErr);
+        return res.status(500).json({ error: 'DB_CREATE_EVENT_FAILED', message: createErr.message });
       }
     }
 
-    // Get connected Google account email
     oauth2Client.setCredentials(tokens);
     const oauth2 = google.oauth2({ version: 'v2', auth: oauth2Client });
     let connectedEmail = '';
     try {
       const userInfo = await oauth2.userinfo.get();
       connectedEmail = userInfo.data.email || '';
-    } catch (_) {}
+    } catch (userErr) {
+      console.warn('[Google OAuth UserInfo Warning]:', userErr.message);
+    }
 
-    // Resolve folder ID from resourcesDriveUrl if not set
     if (!event.driveFolderId && event.resourcesDriveUrl) {
       const parsed = extractDriveFolderId(event.resourcesDriveUrl);
       if (parsed) event.driveFolderId = parsed;
@@ -300,11 +309,9 @@ router.get('/google/callback', async (req, res) => {
       event.resourcesDriveUrl = roomMeta.resourcesDriveUrl;
     }
 
-    // Store encrypted refresh_token if provided, otherwise preserve existing or fallback to access_token
     if (refresh_token) {
       event.encryptedRefreshToken = encryptToken(refresh_token);
     } else if (!event.encryptedRefreshToken && access_token) {
-      // Fallback: store access_token if no refresh_token was issued by Google
       event.encryptedRefreshToken = encryptToken(access_token);
     }
 
@@ -312,12 +319,15 @@ router.get('/google/callback', async (req, res) => {
     if (connectedEmail) event.driveOwnerEmail = connectedEmail;
     await event.save();
 
-    console.log(`✅ Google Drive connected for room ${roomCode} (${connectedEmail})`);
+    console.log(`[Google OAuth Connection Complete] Room ${roomCode} linked to ${connectedEmail}`);
 
-    res.redirect(`${CLIENT_URL}/rooms/${roomCode}/media?oauth=success&email=${encodeURIComponent(connectedEmail)}`);
-  } catch (err) {
-    console.error('OAuth callback error:', err);
-    res.redirect(`${CLIENT_URL}/rooms/${roomCode}/media?oauth=error&msg=${encodeURIComponent(err.message)}`);
+    res.redirect(`${clientBaseUrl}/rooms/${roomCode}/media?oauth=success&email=${encodeURIComponent(connectedEmail)}`);
+  } catch (error) {
+    console.error('[Google OAuth Callback Failure Error]:', error);
+    res.status(500).json({
+      error: 'OAUTH_CALLBACK_FAILED',
+      message: error.message || 'Failed to exchange authorization code with Google.'
+    });
   }
 });
 
