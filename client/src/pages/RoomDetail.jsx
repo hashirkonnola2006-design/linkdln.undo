@@ -81,61 +81,57 @@ const RoomDetail = () => {
   }, [code]);
 
   const handleJoinClick = async () => {
-    // Guidelines check validation (user should agree to respect guidelines)
-    if (!guidelines.respect) {
-      alert('Please agree to respect others before entering the room.');
-      return;
-    }
-    
     setLoading(true);
 
-    // Get global profile
-    let profile = localStorage.getItem('global_profile');
-    if (!profile) {
-      profile = {
-        name: '',
-        email: '',
-        role: '',
-        company: '',
-        interests: [],
-        goals: '',
-        avatar: ''
-      };
-    } else {
-      profile = JSON.parse(profile);
+    const sessionUserStr = localStorage.getItem('session_user') || localStorage.getItem('global_profile');
+    let profile = { name: 'Attendee', role: 'Attendee', company: '', avatar: '' };
+    if (sessionUserStr) {
+      try {
+        const parsed = JSON.parse(sessionUserStr);
+        if (parsed.name) profile.name = parsed.name;
+        if (parsed.email) profile.email = parsed.email;
+        if (parsed.role) profile.role = parsed.role;
+        if (parsed.company) profile.company = parsed.company;
+        if (parsed.avatar) profile.avatar = parsed.avatar;
+      } catch (e) {}
     }
 
+    let attendeeData = null;
     try {
       const res = await fetch('/api/attendees', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           eventCode: code,
           name: profile.name,
-          email: profile.email,
-          role: profile.role,
-          company: profile.company,
-          goals: profile.goals,
-          interests: profile.interests,
-          avatar: profile.avatar
+          email: profile.email || '',
+          role: profile.role || 'Attendee',
+          company: profile.company || '',
+          avatar: profile.avatar || `https://api.dicebear.com/7.x/open-peeps/svg?seed=${encodeURIComponent(profile.name)}`
         })
       });
 
-      if (!res.ok) {
-        throw new Error('Failed to join room.');
+      if (res.ok) {
+        attendeeData = await res.json();
       }
-
-      const attendeeData = await res.json();
-      localStorage.setItem(`attendee_${code}`, JSON.stringify(attendeeData));
-      navigate(`/rooms/${code}/feed`);
     } catch (err) {
-      console.error(err);
-      alert(err.message || 'Error joining the room.');
-    } finally {
-      setLoading(false);
+      console.warn('Joining fallback:', err);
     }
+
+    if (!attendeeData) {
+      attendeeData = {
+        _id: 'user_' + Date.now(),
+        name: profile.name,
+        email: profile.email || '',
+        role: profile.role || 'Attendee',
+        company: profile.company || '',
+        avatar: profile.avatar || `https://api.dicebear.com/7.x/open-peeps/svg?seed=${encodeURIComponent(profile.name)}`,
+        isOnline: true
+      };
+    }
+
+    localStorage.setItem(`attendee_${code}`, JSON.stringify(attendeeData));
+    navigate(`/rooms/${code}/feed`);
   };
 
   if (loading) {

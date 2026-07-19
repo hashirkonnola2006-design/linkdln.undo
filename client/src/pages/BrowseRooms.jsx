@@ -119,11 +119,11 @@ const BrowseRooms = () => {
               }`}
             >
               <span>My Rooms</span>
-              {rooms.filter(r => Boolean(localStorage.getItem(`attendee_${r.code}`))).length > 0 && (
+              {rooms.filter(r => Boolean(localStorage.getItem(`attendee_${r.code}`)) || localStorage.getItem(`room_creator_${r.code}`) === 'true').length > 0 && (
                 <span class={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
                   activeTab === 'my' ? 'bg-primary text-white' : 'bg-slate-100 text-slate-600'
                 }`}>
-                  {rooms.filter(r => Boolean(localStorage.getItem(`attendee_${r.code}`))).length}
+                  {rooms.filter(r => Boolean(localStorage.getItem(`attendee_${r.code}`)) || localStorage.getItem(`room_creator_${r.code}`) === 'true').length}
                 </span>
               )}
             </button>
@@ -155,182 +155,154 @@ const BrowseRooms = () => {
             {/* Rooms Cards Grid */}
             {loading ? (
               <div class="py-12 text-center text-slate-500 font-semibold">Loading available rooms...</div>
-            ) : rooms.filter(room => activeTab === 'my' ? Boolean(localStorage.getItem(`attendee_${room.code}`)) : true).length === 0 ? (
+            ) : rooms.filter(room => activeTab === 'my' ? (Boolean(localStorage.getItem(`attendee_${room.code}`)) || localStorage.getItem(`room_creator_${room.code}`) === 'true') : true).length === 0 ? (
               activeTab === 'my' ? (
                 <div class="py-16 text-center bg-white border border-slate-100 rounded-3xl p-8 space-y-4 shadow-sm">
                   <div class="h-12 w-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto">
-                    <Compass size={24} />
+                    <LogIn size={24} />
                   </div>
-                  <h3 class="font-display font-extrabold text-slate-800 text-lg">No Joined Rooms Yet</h3>
-                  <p class="text-slate-400 text-xs max-w-sm mx-auto leading-relaxed">
-                    You haven't joined any networking rooms yet. Switch to "All Rooms" to discover and join live rooms!
-                  </p>
-                  <button
+                  <div>
+                    <h3 class="font-display font-bold text-base text-slate-900">No rooms joined yet</h3>
+                    <p class="text-xs text-slate-400 font-medium mt-1 max-w-sm mx-auto">
+                      Explore public rooms in the "All Rooms" tab or create your own room to start networking!
+                    </p>
+                  </div>
+                  <button 
                     onClick={() => setActiveTab('all')}
-                    class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition cursor-pointer shadow-sm inline-block"
+                    class="rounded-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-6 py-3 shadow-sm transition cursor-pointer"
                   >
-                    Explore All Rooms
+                    Browse All Rooms
                   </button>
                 </div>
               ) : (
-                <div class="py-16 text-center bg-white border border-slate-100 rounded-3xl p-8 space-y-4 shadow-sm">
-                  <div class="h-12 w-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto">
-                    <Compass size={24} />
-                  </div>
-                  <h3 class="font-display font-extrabold text-slate-800 text-lg">No Public Rooms Yet</h3>
-                  <p class="text-slate-400 text-xs max-w-sm mx-auto leading-relaxed">
-                    Be the first organizer to launch a live networking room!
-                  </p>
-                  <button
-                    onClick={() => navigate('/create')}
-                    class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition cursor-pointer shadow-sm inline-block"
-                  >
-                    Create a Room
-                  </button>
-                </div>
+                <div class="py-12 text-center text-slate-400 font-semibold">No rooms match your filter criteria.</div>
               )
             ) : (
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {rooms.filter(room => activeTab === 'my' ? Boolean(localStorage.getItem(`attendee_${room.code}`)) : true).map((room) => {
-                  const isUpcoming = room.isLive === false;
-                  
-                  return (
-                    <div key={room._id} class="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-premium hover:shadow-premium-hover hover:scale-[1.01] transition-all duration-200 flex flex-col justify-between">
-                      {/* Banner Poster Graphic with Clean 3-Color Organic Palette or Custom Image */}
-                      <div class="relative h-40 w-full overflow-hidden flex items-center justify-center p-4 text-white">
-                        {room.posterUrl ? (
-                          <div class="absolute inset-0">
-                            <img src={room.posterUrl} alt={room.title} class="w-full h-full object-cover" />
-                            <div class="absolute inset-0 bg-slate-950/30" />
-                          </div>
-                        ) : typeof room.posterPaletteIndex === 'number' ? (
-                          <div class={`absolute inset-0 bg-gradient-to-br ${organicPalettes[room.posterPaletteIndex % organicPalettes.length].bg}`}>
-                            <div class={`absolute -top-6 -right-6 w-36 h-36 rounded-[40%_60%_70%_30%/50%_40%_60%_50%] ${organicPalettes[room.posterPaletteIndex % organicPalettes.length].shape1} opacity-90 shadow-md`}></div>
-                            <div class={`absolute -bottom-8 -left-6 w-40 h-40 rounded-[60%_40%_50%_50%/45%_55%_45%_55%] ${organicPalettes[room.posterPaletteIndex % organicPalettes.length].shape2} opacity-80 shadow-md`}></div>
-                            <div class={`absolute bottom-3 right-16 w-8 h-8 rounded-full ${organicPalettes[room.posterPaletteIndex % organicPalettes.length].dot}`}></div>
-                          </div>
-                        ) : room.template === 'Networking' ? (
-                          /* 3-Color Palette 1: Royal Blue (#1a73e8) + Dark Navy (#0f172a) + Warm Amber (#fbbf24) */
-                          <div class="absolute inset-0 bg-gradient-to-br from-[#1a73e8] to-[#0f172a]">
-                            <div class="absolute -top-6 -right-6 w-36 h-36 rounded-[40%_60%_70%_30%/50%_40%_60%_50%] bg-[#fbbf24] opacity-90 shadow-md"></div>
-                            <div class="absolute -bottom-8 -left-6 w-40 h-40 rounded-[60%_40%_50%_50%/45%_55%_45%_55%] bg-[#1a73e8] opacity-80 shadow-md"></div>
-                            <div class="absolute bottom-3 right-16 w-8 h-8 rounded-full bg-[#fbbf24]"></div>
-                          </div>
-                        ) : room.template === 'Workshop' ? (
-                          /* 3-Color Palette 2: Slate Navy (#1e293b) + Sky Blue (#0284c7) + Mint Emerald (#10b981) */
-                          <div class="absolute inset-0 bg-gradient-to-br from-[#1e293b] to-[#0f172a]">
-                            <div class="absolute -top-8 -left-8 w-40 h-40 rounded-[50%_50%_60%_40%/60%_40%_50%_50%] bg-[#0284c7] opacity-90 shadow-md"></div>
-                            <div class="absolute -bottom-6 -right-6 w-36 h-36 rounded-[40%_60%_50%_50%/50%_40%_60%_50%] bg-[#10b981] opacity-90 shadow-md"></div>
-                            <div class="absolute top-4 right-16 w-8 h-8 rounded-full bg-[#0284c7]"></div>
-                          </div>
-                        ) : (
-                          /* 3-Color Palette 3: Deep Blue (#1d4ed8) + Dark Indigo (#1e1b4b) + Soft Sky (#3b82f6) */
-                          <div class="absolute inset-0 bg-gradient-to-br from-[#1d4ed8] to-[#1e1b4b]">
-                            <div class="absolute -top-6 right-2 w-36 h-36 rounded-[60%_40%_40%_60%/40%_60%_40%_60%] bg-[#3b82f6] opacity-90 shadow-md"></div>
-                            <div class="absolute -bottom-10 left-0 w-44 h-44 rounded-[45%_55%_65%_35%/55%_45%_55%_45%] bg-[#60a5fa] opacity-80 shadow-md"></div>
-                            <div class="absolute bottom-3 right-12 w-8 h-8 rounded-full bg-[#3b82f6]"></div>
-                          </div>
-                        )}
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {rooms
+                  .filter(room => activeTab === 'my' ? (Boolean(localStorage.getItem(`attendee_${room.code}`)) || localStorage.getItem(`room_creator_${room.code}`) === 'true') : true)
+                  .map((room) => {
+                    const isUpcoming = room.isLive === false;
+                    const isJoinedOrCreated = Boolean(localStorage.getItem(`attendee_${room.code}`)) || localStorage.getItem(`room_creator_${room.code}`) === 'true';
 
-                        <span class="font-display font-black text-white text-center tracking-widest text-lg uppercase drop-shadow-md relative z-10 opacity-90">
-                          {room.template}
-                        </span>
+                    const handleCardJoin = (e) => {
+                      e.stopPropagation();
+                      if (!isJoinedOrCreated) {
+                        const sessionUserStr = localStorage.getItem('session_user') || localStorage.getItem('global_profile');
+                        let parsedUser = { name: 'Attendee', role: 'Attendee', company: '' };
+                        if (sessionUserStr) {
+                          try { parsedUser = JSON.parse(sessionUserStr); } catch (e) {}
+                        }
+                        const attendeeData = {
+                          _id: 'user_' + Date.now(),
+                          name: parsedUser.name || 'Attendee',
+                          email: parsedUser.email || '',
+                          role: parsedUser.role || 'Attendee',
+                          company: parsedUser.company || '',
+                          avatar: parsedUser.avatar || `https://api.dicebear.com/7.x/open-peeps/svg?seed=${encodeURIComponent(parsedUser.name || 'user')}`,
+                          isOnline: true
+                        };
+                        localStorage.setItem(`attendee_${room.code}`, JSON.stringify(attendeeData));
+                      }
+                      navigate(`/rooms/${room.code}/feed`);
+                    };
 
-                        {/* Live/Upcoming Badge */}
-                        <div class="absolute top-4 left-4 z-20 flex items-center gap-2">
-                          {!isUpcoming ? (
-                            <span class="inline-flex items-center gap-1 rounded-full bg-emerald-600 text-white text-[10px] font-extrabold px-2.5 py-1 uppercase shadow-sm">
-                              <span class="h-1.5 w-1.5 rounded-full bg-white animate-ping"></span>
-                              Live
-                            </span>
+                    return (
+                      <div 
+                        key={room.code} 
+                        class="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-xs hover:shadow-lg transition-all duration-300 flex flex-col justify-between"
+                      >
+                        {/* Poster Header */}
+                        <div class="relative h-40 w-full overflow-hidden flex items-center justify-center p-4 text-white">
+                          {room.posterUrl ? (
+                            <div class="absolute inset-0">
+                              <img src={room.posterUrl} alt={room.title} class="w-full h-full object-cover" />
+                              <div class="absolute inset-0 bg-slate-950/30" />
+                            </div>
+                          ) : typeof room.posterPaletteIndex === 'number' ? (
+                            <div class={`absolute inset-0 bg-gradient-to-br ${organicPalettes[room.posterPaletteIndex % organicPalettes.length].bg}`}>
+                              <div class={`absolute -top-6 -right-6 w-36 h-36 rounded-[40%_60%_70%_30%/50%_40%_60%_50%] ${organicPalettes[room.posterPaletteIndex % organicPalettes.length].shape1} opacity-90 shadow-md`}></div>
+                              <div class={`absolute -bottom-8 -left-6 w-40 h-40 rounded-[60%_40%_50%_50%/45%_55%_45%_55%] ${organicPalettes[room.posterPaletteIndex % organicPalettes.length].shape2} opacity-80 shadow-md`}></div>
+                              <div class={`absolute bottom-3 right-16 w-8 h-8 rounded-full ${organicPalettes[room.posterPaletteIndex % organicPalettes.length].dot}`}></div>
+                            </div>
                           ) : (
-                            <span class="inline-flex items-center rounded-full bg-amber-500 text-white text-[10px] font-extrabold px-2.5 py-1 uppercase shadow-sm">
-                              Upcoming
-                            </span>
+                            <div class="absolute inset-0 bg-gradient-to-br from-[#1a73e8] to-[#0f172a]">
+                              <div class="absolute -top-6 -right-6 w-36 h-36 rounded-[40%_60%_70%_30%/50%_40%_60%_50%] bg-[#fbbf24] opacity-90 shadow-md"></div>
+                              <div class="absolute -bottom-8 -left-6 w-40 h-40 rounded-[60%_40%_50%_50%/45%_55%_45%_55%] bg-[#1a73e8] opacity-80 shadow-md"></div>
+                              <div class="absolute bottom-3 right-16 w-8 h-8 rounded-full bg-[#fbbf24]"></div>
+                            </div>
                           )}
-                        </div>
 
-                        {/* Joined badge top right */}
-                        {Boolean(localStorage.getItem(`attendee_${room.code}`)) && (
-                          <div class="absolute top-4 right-4 z-20">
-                            <span class="inline-flex items-center gap-1 rounded-full bg-blue-600 text-white text-[10px] font-extrabold px-2.5 py-1 uppercase shadow-sm">
-                              <Check size={10} />
-                              Joined
-                            </span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Content details */}
-                      <div class="p-6 flex-1 flex flex-col justify-between space-y-4">
-                        <div class="space-y-2">
-                          <h3 class="font-display font-extrabold text-slate-900 leading-snug">
-                            {room.title}
-                          </h3>
-                          <p class="text-xs text-slate-400 font-medium line-clamp-2 leading-relaxed">
-                            {room.description}
-                          </p>
-                        </div>
-
-                        {/* Badges row */}
-                        <div class="flex flex-wrap gap-1.5">
-                          <span class="bg-primary/10 text-primary font-bold text-[10px] px-2 py-0.5 rounded-full">
-                            {room.template}
+                          <span class="font-display font-black text-white text-center tracking-widest text-lg uppercase drop-shadow-md relative z-10 opacity-90">
+                            {room.template || 'Networking'}
                           </span>
-                          {room.template === 'Networking' && (
-                            <span class="bg-slate-100 text-slate-500 font-bold text-[10px] px-2 py-0.5 rounded-full">
-                              Workshop
-                            </span>
-                          )}
-                          {room.template === 'Conference' && (
-                            <span class="bg-slate-100 text-slate-500 font-bold text-[10px] px-2 py-0.5 rounded-full">
-                              Tech
-                            </span>
-                          )}
-                          {room.template === 'Workshop' && (
-                            <span class="bg-slate-100 text-slate-500 font-bold text-[10px] px-2 py-0.5 rounded-full">
-                              Design
-                            </span>
-                          )}
-                        </div>
 
-                        {/* Card bottom actions */}
-                        <div class="border-t border-slate-50 pt-4 flex items-center justify-between">
-                          <div class="flex items-center gap-1 text-[11px] font-bold text-slate-400">
+                          {/* Live/Upcoming Badge */}
+                          <div class="absolute top-4 left-4 z-20 flex items-center gap-2">
                             {!isUpcoming ? (
-                              <>
-                                <Users size={12} />
-                                {room.onlineCount || 12} Online
-                              </>
+                              <span class="inline-flex items-center gap-1 rounded-full bg-emerald-600 text-white text-[10px] font-extrabold px-2.5 py-1 uppercase shadow-sm">
+                                <span class="h-1.5 w-1.5 rounded-full bg-white animate-ping"></span>
+                                Live
+                              </span>
                             ) : (
-                              <>
-                                <Calendar size={12} />
-                                May 18, 10:00 AM
-                              </>
+                              <span class="inline-flex items-center rounded-full bg-amber-500 text-white text-[10px] font-extrabold px-2.5 py-1 uppercase shadow-sm">
+                                Upcoming
+                              </span>
                             )}
                           </div>
-                          
-                          {localStorage.getItem(`attendee_${room.code}`) ? (
-                            <button
-                              onClick={() => navigate(`/rooms/${room.code}/feed`)}
-                              class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
-                            >
-                              <span>Visit Room</span>
-                              <ArrowUpRight size={14} />
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => navigate(`/rooms/${room.code}`)}
-                              class="bg-primary hover:bg-primary-dark text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow-sm cursor-pointer"
-                            >
-                              {!isUpcoming ? 'Join' : 'Register'}
-                            </button>
+
+                          {/* Joined/Created badge top right */}
+                          {isJoinedOrCreated && (
+                            <div class="absolute top-4 right-4 z-20">
+                              <span class="inline-flex items-center gap-1 rounded-full bg-blue-600 text-white text-[10px] font-extrabold px-2.5 py-1 uppercase shadow-sm">
+                                <Check size={10} />
+                                {localStorage.getItem(`room_creator_${room.code}`) === 'true' ? 'Host' : 'Joined'}
+                              </span>
+                            </div>
                           )}
                         </div>
+
+                        {/* Content details */}
+                        <div class="p-6 flex-1 flex flex-col justify-between space-y-4">
+                          <div class="space-y-2">
+                            <h3 class="font-display font-extrabold text-slate-900 leading-snug">
+                              {room.title}
+                            </h3>
+                            <p class="text-xs text-slate-400 font-medium line-clamp-2 leading-relaxed">
+                              {room.description}
+                            </p>
+                          </div>
+
+                          {/* Badges row */}
+                          <div class="flex flex-wrap gap-1.5">
+                            <span class="bg-primary/10 text-primary font-bold text-[10px] px-2 py-0.5 rounded-full">
+                              {room.template || 'Networking'}
+                            </span>
+                          </div>
+
+                          {/* Card bottom actions */}
+                          <div class="border-t border-slate-50 pt-4 flex items-center justify-between">
+                            <div class="flex items-center gap-1 text-[11px] font-bold text-slate-400">
+                              <Users size={12} />
+                              {room.onlineCount || 1} Online
+                            </div>
+                            
+                            <button
+                              onClick={handleCardJoin}
+                              class={`font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow-sm flex items-center gap-1.5 cursor-pointer ${
+                                isJoinedOrCreated
+                                  ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                                  : 'bg-primary hover:bg-primary-dark text-white'
+                              }`}
+                            >
+                              <span>{isJoinedOrCreated ? 'Visit Room' : 'Join'}</span>
+                              <ArrowUpRight size={14} />
+                            </button>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
               </div>
             )}
           </div>
