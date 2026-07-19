@@ -380,6 +380,12 @@ const MediaView = () => {
     );
   }
 
+  const handleConnectGoogle = (e) => {
+    e.preventDefault();
+    const targetUrl = `/api/auth/google?roomCode=${encodeURIComponent(code)}&title=${encodeURIComponent(event?.title || '')}&description=${encodeURIComponent(event?.description || '')}&hostName=${encodeURIComponent(event?.hostName || '')}&resourcesDriveUrl=${encodeURIComponent(activeDriveUrl || '')}&driveFolderId=${encodeURIComponent(effectiveFolderId || '')}`;
+    window.location.href = targetUrl;
+  };
+
   return (
     <RoomLayout
       eventTitle={event?.title || 'Event Room'}
@@ -411,7 +417,7 @@ const MediaView = () => {
           <div class="absolute top-14 right-14 w-3 h-3 bg-emerald-400 rounded-full hidden sm:block pointer-events-none" />
           <div class="absolute top-24 right-48 w-2.5 h-2.5 bg-amber-400 rounded-full hidden sm:block pointer-events-none" />
 
-          {/* Header Top Section (pl-6 ensures text starts cleanly past the blue corner shape) */}
+          {/* Header Top Section */}
           <div class="relative z-10 pl-6 sm:pl-8 space-y-3 max-w-xl">
             <div class="flex items-center gap-3 flex-wrap">
               <h1 class="font-display font-black text-3xl sm:text-4xl text-slate-900 tracking-tight leading-none">
@@ -462,14 +468,14 @@ const MediaView = () => {
             )}
 
             {!driveOAuthConnected && (
-              <a
-                href={`/api/auth/google?roomCode=${encodeURIComponent(code)}&title=${encodeURIComponent(event?.title || '')}&description=${encodeURIComponent(event?.description || '')}&hostName=${encodeURIComponent(event?.hostName || '')}&hostAvatar=${encodeURIComponent(event?.hostAvatar || '')}&resourcesDriveUrl=${encodeURIComponent(activeDriveUrl || '')}&driveFolderId=${encodeURIComponent(effectiveFolderId || '')}`}
+              <button
+                onClick={handleConnectGoogle}
                 class="inline-flex items-center gap-2 rounded-2xl bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 font-extrabold text-xs px-5 py-3 transition cursor-pointer shadow-2xs"
                 title="Connect with Google Account"
               >
                 <GoogleDriveLogo />
                 <span>Connect Google Account</span>
-              </a>
+              </button>
             )}
 
             <button
