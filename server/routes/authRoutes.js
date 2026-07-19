@@ -157,35 +157,58 @@ const extractDriveFolderId = (urlOrId) => {
 router.get('/google', (req, res) => {
   const { roomCode, title, hostName, hostAvatar, resourcesDriveUrl, driveFolderId } = req.query;
 
+  const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+  const host = req.headers['x-forwarded-host'] || req.headers.host;
+  const baseUrl = process.env.CLIENT_URL || `${protocol}://${host}`;
+
   if (!roomCode) {
-    return res.status(400).send('Missing roomCode parameter.');
+    return res.redirect(`${baseUrl}/rooms`);
   }
 
-  const oauth2Client = getOAuth2Client();
-  const scopes = [
-    'https://www.googleapis.com/auth/drive.file',
-    'https://www.googleapis.com/auth/userinfo.email',
-    'https://www.googleapis.com/auth/userinfo.profile'
-  ];
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
 
-  // Encode room metadata in state so we can upsert it on callback
-  const stateData = JSON.stringify({
-    roomCode,
-    title: title || 'Room ' + roomCode,
-    hostName: hostName || 'Organizer',
-    hostAvatar: hostAvatar || '',
-    resourcesDriveUrl: resourcesDriveUrl || '',
-    driveFolderId: driveFolderId || ''
-  });
+  if (!clientId || !clientSecret) {
+    console.warn('⚠️ GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET missing on server.');
+    return res.redirect(`${baseUrl}/rooms/${roomCode}/media?oauth=error&msg=${encodeURIComponent('Google OAuth API keys not set on server')}`);
+  }
 
-  const authUrl = oauth2Client.generateAuthUrl({
-    access_type: 'offline',
-    prompt: 'consent',
-    scope: scopes,
-    state: Buffer.from(stateData).toString('base64')
-  });
+  try {
+    const serverBaseUrl = process.env.SERVER_BASE_URL || `${protocol}://${host}`;
+    const oauth2Client = new google.auth.OAuth2(
+      clientId,
+      clientSecret,
+      `${serverBaseUrl}/api/auth/google/callback`
+    );
 
-  res.redirect(authUrl);
+    const scopes = [
+      'https://www.googleapis.com/auth/drive.file',
+      'https://www.googleapis.com/auth/userinfo.email',
+      'https://www.googleapis.com/auth/userinfo.profile'
+    ];
+
+    // Encode room metadata in state so we can upsert it on callback
+    const stateData = JSON.stringify({
+      roomCode,
+      title: title || 'Room ' + roomCode,
+      hostName: hostName || 'Organizer',
+      hostAvatar: hostAvatar || '',
+      resourcesDriveUrl: resourcesDriveUrl || '',
+      driveFolderId: driveFolderId || ''
+    });
+
+    const authUrl = oauth2Client.generateAuthUrl({
+      access_type: 'offline',
+      prompt: 'consent',
+      scope: scopes,
+      state: Buffer.from(stateData).toString('base64')
+    });
+
+    res.redirect(authUrl);
+  } catch (err) {
+    console.error('Google OAuth init error:', err);
+    res.redirect(`${baseUrl}/rooms/${roomCode}/media?oauth=error&msg=${encodeURIComponent(err.message)}`);
+  }
 });
 
 /**
@@ -195,6 +218,10 @@ router.get('/google', (req, res) => {
 router.get('/google/callback', async (req, res) => {
   const { code, state: stateB64, error } = req.query;
 
+  const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+  const host = req.headers['x-forwarded-host'] || req.headers.host;
+  const baseUrl = process.env.CLIENT_URL || `${protocol}://${host}`;
+
   // Decode state
   let roomCode = '';
   let roomMeta = {};
@@ -203,17 +230,16 @@ router.get('/google/callback', async (req, res) => {
     roomCode = decoded.roomCode || '';
     roomMeta = decoded;
   } catch (_) {
-    // Fallback: state might be plain roomCode (legacy)
     roomCode = stateB64 || '';
   }
 
   // If user denied access
   if (error) {
-    return res.redirect(`${CLIENT_URL}/rooms/${roomCode}/media?oauth=denied`);
+    return res.redirect(`${baseUrl}/rooms/${roomCode}/media?oauth=denied`);
   }
 
   if (!code || !roomCode) {
-    return res.status(400).send('Missing code or roomCode.');
+    return res.redirect(`${baseUrl}/rooms`);
   }
 
   try {

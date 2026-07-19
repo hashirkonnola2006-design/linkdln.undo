@@ -432,19 +432,11 @@ const MediaView = () => {
                   </span>
                 )}
 
-                {driveOAuthConnected ? (
+                {driveOAuthConnected && (
                   <span class="inline-flex items-center gap-1.5 rounded-full bg-[#e8f0fe] text-[#1a73e8] border border-blue-200/80 px-3.5 py-1 text-xs font-extrabold shadow-2xs">
                     <ShieldCheck size={14} />
                     Google Connected
                   </span>
-                ) : (
-                  <a
-                    href={`/api/auth/google?roomCode=${encodeURIComponent(code)}&title=${encodeURIComponent(event?.title || '')}&description=${encodeURIComponent(event?.description || '')}&hostName=${encodeURIComponent(event?.hostName || '')}&hostAvatar=${encodeURIComponent(event?.hostAvatar || '')}&resourcesDriveUrl=${encodeURIComponent(activeDriveUrl || '')}&driveFolderId=${encodeURIComponent(effectiveFolderId || '')}`}
-                    class="inline-flex items-center gap-1.5 rounded-full bg-white border border-slate-200 hover:border-blue-300 hover:bg-blue-50 px-3.5 py-1 text-xs font-extrabold text-slate-700 hover:text-blue-600 transition shadow-xs cursor-pointer"
-                  >
-                    <LogIn size={14} />
-                    Connect Google Account
-                  </a>
                 )}
               </div>
             </div>
@@ -456,25 +448,27 @@ const MediaView = () => {
 
           {/* Action Buttons (Bottom Right) */}
           <div class="relative z-10 flex items-center justify-end gap-3 mt-6 flex-wrap">
-            <a
-              href={driveFolderUrl || 'https://drive.google.com'}
-              target="_blank"
-              rel="noopener noreferrer"
-              class="inline-flex items-center gap-2 rounded-2xl bg-white hover:bg-slate-100 border border-slate-200 text-[#1a73e8] font-extrabold text-xs px-5 py-3 transition cursor-pointer shadow-2xs"
-              title="Visit Google Drive Folder"
-            >
-              <ExternalLink size={14} />
-              <span>Visit Drive Folder</span>
-            </a>
+            {driveFolderUrl && (
+              <a
+                href={driveFolderUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-flex items-center gap-2 rounded-2xl bg-white hover:bg-slate-100 border border-slate-200 text-[#1a73e8] font-extrabold text-xs px-5 py-3 transition cursor-pointer shadow-2xs"
+                title="Visit Google Drive Folder"
+              >
+                <ExternalLink size={14} />
+                <span>Visit Drive Folder</span>
+              </a>
+            )}
 
             {!driveOAuthConnected && (
               <a
                 href={`/api/auth/google?roomCode=${encodeURIComponent(code)}&title=${encodeURIComponent(event?.title || '')}&description=${encodeURIComponent(event?.description || '')}&hostName=${encodeURIComponent(event?.hostName || '')}&hostAvatar=${encodeURIComponent(event?.hostAvatar || '')}&resourcesDriveUrl=${encodeURIComponent(activeDriveUrl || '')}&driveFolderId=${encodeURIComponent(effectiveFolderId || '')}`}
                 class="inline-flex items-center gap-2 rounded-2xl bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 font-extrabold text-xs px-5 py-3 transition cursor-pointer shadow-2xs"
-                title="Connect to Google Drive Folder"
+                title="Connect with Google Account"
               >
                 <GoogleDriveLogo />
-                <span>Connect to Folder</span>
+                <span>Connect Google Account</span>
               </a>
             )}
 
