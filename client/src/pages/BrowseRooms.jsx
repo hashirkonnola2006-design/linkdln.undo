@@ -26,94 +26,6 @@ const BrowseRooms = () => {
   const [selectedDate, setSelectedDate] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Fallback high-fidelity seed data representing the exact screenshots
-  const mockRooms = [
-    {
-      _id: 'mock1',
-      code: 'MU-LEARN',
-      title: 'MU Learn Event 2.0',
-      description: 'A collaborative learning and networking space focused on the intersection of data science and professional growth.',
-      template: 'Networking',
-      visibility: 'Public',
-      joinMode: 'Open',
-      dateTime: new Date(),
-      hostName: 'Alosh Denny',
-      onlineCount: 124,
-      isLive: true,
-      gradient: 'from-amber-400 to-rose-600'
-    },
-    {
-      _id: 'mock2',
-      code: 'REZOLVE',
-      title: 'ReZolve 3.0',
-      description: 'Tech talks, real-world problem solving, and networking. Discover new methodologies and connect with experts.',
-      template: 'Conference',
-      visibility: 'Public',
-      joinMode: 'Open',
-      dateTime: new Date(),
-      hostName: 'Jordan Taylor',
-      onlineCount: 98,
-      isLive: true,
-      gradient: 'from-blue-600 to-indigo-800'
-    },
-    {
-      _id: 'mock3',
-      code: 'DESIGN-SUMMIT',
-      title: 'Design Summit 2024',
-      description: 'Explore the future of design with industry leaders. Interactive design thinking workshops and portfolios review.',
-      template: 'Workshop',
-      visibility: 'Public',
-      joinMode: 'Approval',
-      dateTime: new Date(Date.now() + 86400000 * 10), // 10 days later
-      hostName: 'Sarah Jenkins',
-      onlineCount: 0,
-      isLive: false,
-      gradient: 'from-cyan-500 to-blue-600'
-    },
-    {
-      _id: 'mock4',
-      code: 'STARTUP-CONNECT',
-      title: 'Startup Connect 3.0',
-      description: 'Connect with early-stage founders, potential co-founders, angel investors, and growth developers.',
-      template: 'Networking',
-      visibility: 'Public',
-      joinMode: 'Open',
-      dateTime: new Date(),
-      hostName: 'Marcus Chen',
-      onlineCount: 45,
-      isLive: true,
-      gradient: 'from-fuchsia-600 to-pink-500'
-    },
-    {
-      _id: 'mock5',
-      code: 'AI-HORIZONS',
-      title: 'AI Horizons 2024',
-      description: 'Discussions and insights on Gemini Flash, LLM fine-tuning, and modern agentic workflow automation.',
-      template: 'Conference',
-      visibility: 'Public',
-      joinMode: 'Approval',
-      dateTime: new Date(Date.now() + 86400000 * 3), // 3 days later
-      hostName: 'Elena Rossi',
-      onlineCount: 0,
-      isLive: false,
-      gradient: 'from-violet-600 to-purple-800'
-    },
-    {
-      _id: 'mock6',
-      code: 'CODE-COLLAB',
-      title: 'CodeCollab 2.0',
-      description: 'Collaborate, build, and grow with other open source developers during this active hacking mixer.',
-      template: 'Workshop',
-      visibility: 'Public',
-      joinMode: 'Open',
-      dateTime: new Date(),
-      hostName: 'Leila Chen',
-      onlineCount: 67,
-      isLive: true,
-      gradient: 'from-emerald-400 to-teal-700'
-    }
-  ];
-
   const fetchRooms = async () => {
     setLoading(true);
     try {
@@ -123,41 +35,43 @@ const BrowseRooms = () => {
       if (selectedDate) url += `&date=${selectedDate}`;
 
       const res = await fetch(url);
+      const localRooms = JSON.parse(localStorage.getItem('local_created_rooms') || '[]');
+      
+      let serverData = [];
       if (res.ok) {
-        const data = await res.json();
-        const localRooms = JSON.parse(localStorage.getItem('local_created_rooms') || '[]');
-        
-        // Mix database rooms, locally created rooms, and mock rooms
-        const merged = [...localRooms, ...data];
-        
-        // Add mock rooms if they are not already duplicated or database is empty
-        mockRooms.forEach(mock => {
-          if (!merged.some(r => r.code === mock.code)) {
-            merged.push(mock);
-          }
-        });
-        
-        // Filter merged list client-side based on templates/status/search if desired
-        let filtered = merged;
-        if (search) {
-          filtered = filtered.filter(r => 
-            r.title.toLowerCase().includes(search.toLowerCase()) || 
-            r.description.toLowerCase().includes(search.toLowerCase())
-          );
-        }
-        if (selectedTemplate !== 'All') {
-          filtered = filtered.filter(r => r.template === selectedTemplate);
-        }
-        if (selectedStatus !== 'All') {
-          if (selectedStatus === 'Live Now') filtered = filtered.filter(r => r.isLive !== false);
-          if (selectedStatus === 'Upcoming') filtered = filtered.filter(r => r.isLive === false);
-        }
-        
-        setRooms(filtered);
-      } else {
-        const localRooms = JSON.parse(localStorage.getItem('local_created_rooms') || '[]');
-        setRooms([...localRooms, ...mockRooms]);
+        serverData = await res.json();
       }
+
+      // Merge server rooms and locally created rooms
+      const mergedMap = new Map();
+      [...localRooms, ...serverData].forEach(item => {
+        if (item && item.code) mergedMap.set(item.code, item);
+      });
+
+      let filtered = Array.from(mergedMap.values());
+      if (search) {
+        filtered = filtered.filter(r => 
+          r.title?.toLowerCase().includes(search.toLowerCase()) || 
+          r.description?.toLowerCase().includes(search.toLowerCase())
+        );
+      }
+      if (selectedTemplate !== 'All') {
+        filtered = filtered.filter(r => r.template === selectedTemplate);
+      }
+      if (selectedStatus !== 'All') {
+        if (selectedStatus === 'Live Now') filtered = filtered.filter(r => r.isLive !== false);
+        if (selectedStatus === 'Upcoming') filtered = filtered.filter(r => r.isLive === false);
+      }
+      
+      setRooms(filtered);
+    } catch (err) {
+      console.error('Error fetching rooms:', err);
+      const localRooms = JSON.parse(localStorage.getItem('local_created_rooms') || '[]');
+      setRooms(localRooms);
+    } finally {
+      setLoading(false);
+    }
+  };
     } catch (err) {
       console.error('Error loading rooms, using defaults', err);
       const localRooms = JSON.parse(localStorage.getItem('local_created_rooms') || '[]');
@@ -265,7 +179,21 @@ const BrowseRooms = () => {
                   </button>
                 </div>
               ) : (
-                <div class="py-12 text-center text-slate-500 font-semibold bg-white border border-slate-100 rounded-3xl p-6">No matching rooms found.</div>
+                <div class="py-16 text-center bg-white border border-slate-100 rounded-3xl p-8 space-y-4 shadow-sm">
+                  <div class="h-12 w-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto">
+                    <Compass size={24} />
+                  </div>
+                  <h3 class="font-display font-extrabold text-slate-800 text-lg">No Public Rooms Yet</h3>
+                  <p class="text-slate-400 text-xs max-w-sm mx-auto leading-relaxed">
+                    Be the first organizer to launch a live networking room!
+                  </p>
+                  <button
+                    onClick={() => navigate('/create')}
+                    class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition cursor-pointer shadow-sm inline-block"
+                  >
+                    Create a Room
+                  </button>
+                </div>
               )
             ) : (
               <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -480,23 +408,25 @@ const BrowseRooms = () => {
             </div>
 
             {/* Trending Rooms Widget */}
-            <div class="bg-white rounded-3xl border border-slate-100 p-6 shadow-premium space-y-4">
-              <h3 class="text-sm font-bold text-slate-800">Trending Rooms</h3>
-              <div class="space-y-4">
-                {mockRooms.slice(0, 2).map((room, idx) => (
-                  <div key={room.code} class="flex items-start justify-between gap-2 group cursor-pointer" onClick={() => navigate(`/rooms/${room.code}`)}>
-                    <div class="flex items-center gap-3">
-                      <span class="text-xs font-black text-slate-300">{idx + 1}</span>
-                      <div>
-                        <h4 class="text-xs font-bold text-slate-800 group-hover:text-primary transition">{room.title}</h4>
-                        <span class="text-[10px] text-slate-400 font-medium">{room.onlineCount} online</span>
+            {rooms.length > 0 && (
+              <div class="bg-white rounded-3xl border border-slate-100 p-6 shadow-xs space-y-4">
+                <h3 class="text-sm font-bold text-slate-800">Live Rooms</h3>
+                <div class="space-y-4">
+                  {rooms.slice(0, 3).map((room, idx) => (
+                    <div key={room.code} class="flex items-start justify-between gap-2 group cursor-pointer" onClick={() => navigate(`/rooms/${room.code}`)}>
+                      <div class="flex items-center gap-3">
+                        <span class="text-xs font-black text-slate-300">{idx + 1}</span>
+                        <div>
+                          <h4 class="text-xs font-bold text-slate-800 group-hover:text-blue-600 transition">{room.title}</h4>
+                          <span class="text-[10px] text-slate-400 font-medium">{room.onlineCount || 0} online</span>
+                        </div>
                       </div>
+                      <ArrowUpRight size={14} class="text-slate-300 group-hover:text-blue-600 transition" />
                     </div>
-                    <ArrowUpRight size={14} class="text-slate-300 group-hover:text-primary transition" />
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
         </div>

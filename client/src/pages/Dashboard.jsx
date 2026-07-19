@@ -43,41 +43,29 @@ const Dashboard = () => {
   const [deleteInputName, setDeleteInputName] = useState('');
   const [showAttendeeModal, setShowAttendeeModal] = useState(false);
 
-  // Room Statistics State
+  // Room Statistics State (Fresh zero state for live test drive)
   const [stats, setStats] = useState({
-    liveNow: 42,
-    totalJoins: 1248,
-    totalJoinsDiff: '+ 34%',
-    peakTraffic: '11:00 AM',
-    activeJars: 24,
-    topPerformer: 'Web Devs',
-    jarPopularity: [
-      { label: 'Web Developers', count: 428, percentage: 85 },
-      { label: 'Designers', count: 312, percentage: 65 },
-      { label: 'Product Managers', count: 204, percentage: 45 },
-      { label: 'Engineering', count: 188, percentage: 40 },
-      { label: 'Other Roles', count: 116, percentage: 25 }
-    ]
+    liveNow: 0,
+    totalJoins: 0,
+    totalJoinsDiff: '0%',
+    peakTraffic: 'N/A',
+    activeJars: 0,
+    topPerformer: 'N/A',
+    jarPopularity: []
   });
 
-  // Recent Activity Feed State
-  const [recentActivities, setRecentActivities] = useState([
-    { id: 1, type: 'join', text: 'Sarah Miller joined Web Devs Jar', time: '2m ago', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=80&h=80' },
-    { id: 2, type: 'post', text: 'Hashir Konnola posted on Room Wall: "Excited for keynotes!"', time: '6m ago', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=80&h=80' },
-    { id: 3, type: 'connect', text: '12 attendees connected in Web Devs Jar', time: '15m ago', avatar: null },
-    { id: 4, type: 'media', text: 'Alex Chen uploaded photo in Media gallery', time: '32m ago', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=80&h=80' },
-    { id: 5, type: 'join', text: 'Aravind Vijay joined SaaS Founders Jar', time: '45m ago', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=80&h=80' }
-  ]);
+  // Recent Activity Feed State (Clean empty state)
+  const [recentActivities, setRecentActivities] = useState([]);
 
   // Chart Data Points
   const chartData = [
-    { day: 'MON', current: 200, previous: 180 },
-    { day: 'TUE', current: 400, previous: 350 },
-    { day: 'WED', current: 750, previous: 620 },
-    { day: 'THU', current: 1050, previous: 810 },
-    { day: 'FRI', current: 1300, previous: 900 },
-    { day: 'SAT', current: 1450, previous: 1050 },
-    { day: 'SUN', current: 1250, previous: 980 }
+    { day: 'MON', current: 0, previous: 0 },
+    { day: 'TUE', current: 0, previous: 0 },
+    { day: 'WED', current: 0, previous: 0 },
+    { day: 'THU', current: 0, previous: 0 },
+    { day: 'FRI', current: 0, previous: 0 },
+    { day: 'SAT', current: 0, previous: 0 },
+    { day: 'SUN', current: 0, previous: 0 }
   ];
 
   // Creator Security Check

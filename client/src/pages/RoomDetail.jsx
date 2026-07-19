@@ -69,22 +69,8 @@ const RoomDetail = () => {
         if (foundLocal) {
           setEvent(foundLocal);
           setError('');
-        } else if (code === 'MU-LEARN' || code === 'builders-connect') {
-          setEvent({
-            _id: 'mock1',
-            code: 'MU-LEARN',
-            title: 'MU Learn Event 2.0',
-            description: 'A collaborative learning and networking space focused on the intersection of data science and professional growth. Engage in workshops, listen to talks, and meet like-minded peers.',
-            template: 'Networking',
-            visibility: 'Public',
-            joinMode: 'Open',
-            dateTime: new Date(),
-            hostName: 'Alosh Denny',
-            hostAvatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=100&h=100',
-            onlineCount: 124
-          });
         } else {
-          setError(err.message || 'Failed to load event details.');
+          setError(err.message || 'Room not found.');
         }
       } finally {
         setLoading(false);

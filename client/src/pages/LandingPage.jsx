@@ -1,90 +1,43 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search } from 'lucide-react';
+import { Search, PlusCircle } from 'lucide-react';
 import { PublicNavbar, PublicFooter } from '../components/PublicNavbar';
 
 const LandingPage = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('All rooms');
+  const [rooms, setRooms] = useState([]);
 
   const filterTags = [
     'All rooms',
-    'NITC Alumni Meet',
-    'Web Dev Hangout',
-    'Product Builders',
-    'UX Collective',
-    'SaaS Founders',
-    'Remote Tech'
+    'Networking',
+    'Workshop',
+    'Meetup',
+    'Conference'
   ];
 
-  const featuredRooms = [
-    {
-      code: 'MU-LEARN',
-      title: 'NITC Alumni Meet',
-      members: '532 members',
-      blobColor: 'bg-blue-200/60 rounded-[40%_60%_70%_30%/50%_60%_40%_50%]',
-      badge: '+127',
-      avatars: [
-        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=80&h=80',
-        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=80&h=80',
-        'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=80&h=80',
-        'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=80&h=80'
-      ]
-    },
-    {
-      code: 'web-dev-hangout',
-      title: 'Web Dev Hangout',
-      members: '1.2K members',
-      blobColor: 'bg-emerald-200/60 rounded-[60%_40%_30%_70%/40%_50%_60%_50%]',
-      badge: '+342',
-      avatars: [
-        'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=80&h=80',
-        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=80&h=80',
-        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=80&h=80',
-        'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=80&h=80'
-      ]
-    },
-    {
-      code: 'builders-connect',
-      title: 'Product Builders',
-      members: '842 members',
-      blobColor: 'bg-purple-200/60 rounded-[50%_50%_60%_40%/30%_60%_40%_70%]',
-      badge: '+198',
-      avatars: [
-        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=80&h=80',
-        'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=80&h=80',
-        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=80&h=80',
-        'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=80&h=80'
-      ]
-    },
-    {
-      code: 'ux-collective',
-      title: 'UX Collective',
-      members: '659 members',
-      blobColor: 'bg-pink-200/60 rounded-[40%_60%_50%_50%/60%_40%_50%_50%]',
-      badge: '+98',
-      avatars: [
-        'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=80&h=80',
-        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=80&h=80',
-        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=80&h=80',
-        'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=80&h=80'
-      ]
-    },
-    {
-      code: 'saas-founders',
-      title: 'SaaS Founders',
-      members: '1.1K members',
-      blobColor: 'bg-teal-200/60 rounded-[60%_40%_40%_60%/50%_30%_70%_50%]',
-      badge: '+321',
-      avatars: [
-        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=80&h=80',
-        'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=80&h=80',
-        'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=80&h=80',
-        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=80&h=80'
-      ]
-    }
-  ];
+  useEffect(() => {
+    const loadRealRooms = async () => {
+      try {
+        const res = await fetch('/api/events');
+        const localRooms = JSON.parse(localStorage.getItem('local_created_rooms') || '[]');
+        let serverData = [];
+        if (res.ok) {
+          serverData = await res.json();
+        }
+        const mergedMap = new Map();
+        [...localRooms, ...serverData].forEach(item => {
+          if (item && item.code) mergedMap.set(item.code, item);
+        });
+        setRooms(Array.from(mergedMap.values()));
+      } catch (err) {
+        const localRooms = JSON.parse(localStorage.getItem('local_created_rooms') || '[]');
+        setRooms(localRooms);
+      }
+    };
+    loadRealRooms();
+  }, []);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -151,33 +104,14 @@ const LandingPage = () => {
             </div>
 
             {/* Social Proof Avatar Stack */}
-            <div class="flex flex-wrap items-center gap-2 sm:gap-3 pt-1 sm:pt-4">
-              <div class="flex -space-x-2">
-                {[
-                  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100',
-                  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100',
-                  'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100',
-                  'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100'
-                ].map((src, i) => (
-                  <img
-                    key={i}
-                    src={src}
-                    alt="User Avatar"
-                    class="h-7 sm:h-9 w-7 sm:w-9 rounded-full border-2 border-white object-cover shadow-xs"
-                  />
-                ))}
-                <div class="h-7 sm:h-9 w-7 sm:w-9 rounded-full bg-blue-600 text-white font-bold text-[9px] sm:text-xs flex items-center justify-center border-2 border-white shadow-xs">
-                  +12K
-                </div>
-              </div>
-
-              <span class="text-[10px] sm:text-xs font-semibold text-slate-500 max-w-[170px] sm:max-w-[200px] leading-tight">
-                Join 12,000+ professionals building real connections
+            <div class="flex items-center gap-3 pt-1 sm:pt-4">
+              <span class="text-[10px] sm:text-xs font-semibold text-slate-500 leading-tight">
+                Connect with professionals building real connections
               </span>
             </div>
           </div>
 
-          {/* Hero Right Column Graphic (Positioned right next to headline) */}
+          {/* Hero Right Column Graphic */}
           <div class="col-span-5 lg:col-span-6 relative flex items-center justify-center min-h-[150px] sm:min-h-[280px] md:min-h-[380px]">
             {/* Soft background blue organic blob */}
             <div class="absolute -top-4 right-4 sm:right-12 w-28 sm:w-48 h-20 sm:h-32 rounded-[50%_50%_40%_60%/60%_40%_60%_40%] bg-blue-100/70 blur-xs"></div>
@@ -201,14 +135,16 @@ const LandingPage = () => {
 
         </section>
 
-        {/* STATS COUNTER CARD */}
+        {/* DYNAMIC STATS COUNTER CARD */}
         <section class="bg-white rounded-3xl border border-slate-100 p-8 shadow-sm">
           <div class="grid grid-cols-2 md:grid-cols-4 gap-8 divide-x-0 md:divide-x divide-slate-100">
             {/* Stat 1 */}
             <div class="flex items-center gap-4 pl-0 md:pl-4">
               <div class="w-10 h-10 rounded-[40%_60%_50%_50%/50%_40%_60%_50%] bg-blue-100/80 shrink-0"></div>
               <div>
-                <span class="font-display text-2xl md:text-3xl font-extrabold text-slate-900 block leading-none">128</span>
+                <span class="font-display text-2xl md:text-3xl font-extrabold text-slate-900 block leading-none">
+                  {rooms.length}
+                </span>
                 <span class="text-xs font-semibold text-slate-400 mt-1 block">Live events</span>
               </div>
             </div>
@@ -217,7 +153,9 @@ const LandingPage = () => {
             <div class="flex items-center gap-4 pl-0 md:pl-8">
               <div class="w-10 h-10 rounded-[60%_40%_40%_60%/40%_60%_40%_60%] bg-blue-100/80 shrink-0"></div>
               <div>
-                <span class="font-display text-2xl md:text-3xl font-extrabold text-slate-900 block leading-none">12.4K</span>
+                <span class="font-display text-2xl md:text-3xl font-extrabold text-slate-900 block leading-none">
+                  {rooms.reduce((acc, r) => acc + (r.onlineCount || 0), 0)}
+                </span>
                 <span class="text-xs font-semibold text-slate-400 mt-1 block">People connected</span>
               </div>
             </div>
@@ -226,7 +164,9 @@ const LandingPage = () => {
             <div class="flex items-center gap-4 pl-0 md:pl-8">
               <div class="w-10 h-10 rounded-[50%_50%_60%_40%/60%_40%_50%_50%] bg-blue-100/80 shrink-0"></div>
               <div>
-                <span class="font-display text-2xl md:text-3xl font-extrabold text-slate-900 block leading-none">842</span>
+                <span class="font-display text-2xl md:text-3xl font-extrabold text-slate-900 block leading-none">
+                  {rooms.length}
+                </span>
                 <span class="text-xs font-semibold text-slate-400 mt-1 block">Rooms created</span>
               </div>
             </div>
@@ -235,8 +175,10 @@ const LandingPage = () => {
             <div class="flex items-center gap-4 pl-0 md:pl-8">
               <div class="w-10 h-10 rounded-[45%_55%_40%_60%/50%_50%_50%_50%] bg-blue-100/80 shrink-0"></div>
               <div>
-                <span class="font-display text-2xl md:text-3xl font-extrabold text-slate-900 block leading-none">36</span>
-                <span class="text-xs font-semibold text-slate-400 mt-1 block">Countries</span>
+                <span class="font-display text-2xl md:text-3xl font-extrabold text-slate-900 block leading-none">
+                  {rooms.length > 0 ? 1 : 0}
+                </span>
+                <span class="text-xs font-semibold text-slate-400 mt-1 block">Active community</span>
               </div>
             </div>
           </div>
@@ -288,46 +230,54 @@ const LandingPage = () => {
             })}
           </div>
 
-          {/* 5 Popular Rooms Cards Grid */}
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 pt-4 text-left">
-            {featuredRooms.map((room) => (
-              <div
-                key={room.code}
-                onClick={() => navigate(`/rooms/${room.code}`)}
-                class="bg-white rounded-3xl border border-slate-100 p-5 shadow-xs hover:shadow-md transition duration-200 cursor-pointer space-y-4 flex flex-col justify-between"
-              >
-                <div class="space-y-3">
-                  {/* Organic Blob Thumbnail */}
-                  <div class={`w-12 h-10 ${room.blobColor}`}></div>
-                  <div>
-                    <h3 class="font-display font-bold text-sm text-slate-900 truncate" title={room.title}>
-                      {room.title}
-                    </h3>
-                    <span class="text-xs text-slate-400 font-medium block mt-0.5">
-                      {room.members}
+          {/* Real Rooms Cards Grid */}
+          {rooms.length > 0 ? (
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 pt-4 text-left">
+              {rooms.map((room) => (
+                <div
+                  key={room.code}
+                  onClick={() => navigate(`/rooms/${room.code}`)}
+                  class="bg-white rounded-3xl border border-slate-100 p-5 shadow-xs hover:shadow-md transition duration-200 cursor-pointer space-y-4 flex flex-col justify-between"
+                >
+                  <div class="space-y-3">
+                    <div class="w-12 h-10 rounded-2xl bg-blue-100/60"></div>
+                    <div>
+                      <h3 class="font-display font-bold text-sm text-slate-900 truncate" title={room.title}>
+                        {room.title}
+                      </h3>
+                      <span class="text-xs text-slate-400 font-medium block mt-0.5">
+                        {room.onlineCount || 0} members
+                      </span>
+                    </div>
+                  </div>
+                  <div class="flex items-center justify-between pt-2 border-t border-slate-50">
+                    <span class="text-[10px] font-extrabold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full">
+                      {room.template || 'Networking'}
                     </span>
+                    <span class="text-xs font-bold text-slate-400">#{room.code}</span>
                   </div>
                 </div>
-
-                {/* Avatar Stack + Badge */}
-                <div class="flex items-center justify-between pt-2 border-t border-slate-50">
-                  <div class="flex -space-x-2">
-                    {room.avatars.map((img, i) => (
-                      <img
-                        key={i}
-                        src={img}
-                        alt="Member"
-                        class="h-6 w-6 rounded-full border border-white object-cover"
-                      />
-                    ))}
-                  </div>
-                  <span class="text-[10px] font-extrabold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
-                    {room.badge}
-                  </span>
-                </div>
+              ))}
+            </div>
+          ) : (
+            <div class="bg-white rounded-3xl border border-slate-100 p-10 max-w-xl mx-auto space-y-4 shadow-xs text-center">
+              <div class="h-12 w-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto">
+                <PlusCircle size={24} />
               </div>
-            ))}
-          </div>
+              <div>
+                <h3 class="font-display font-bold text-base text-slate-900">No rooms created yet</h3>
+                <p class="text-xs text-slate-400 font-medium mt-1">
+                  Be the first to create a live room and start your test drive!
+                </p>
+              </div>
+              <button
+                onClick={() => navigate('/create')}
+                class="rounded-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-6 py-3 shadow-sm transition cursor-pointer"
+              >
+                Create Room
+              </button>
+            </div>
+          )}
         </section>
       </main>
 
