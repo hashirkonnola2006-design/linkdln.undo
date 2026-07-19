@@ -37,6 +37,8 @@ const LandingPage = () => {
       }
     };
     loadRealRooms();
+    window.addEventListener('roomDeleted', loadRealRooms);
+    return () => window.removeEventListener('roomDeleted', loadRealRooms);
   }, []);
 
   const handleSearchSubmit = (e) => {

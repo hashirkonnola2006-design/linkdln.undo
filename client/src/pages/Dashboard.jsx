@@ -115,8 +115,18 @@ const Dashboard = () => {
       console.error('Error deleting event room:', err);
     }
 
+    // 1. Remove room from local_created_rooms array in localStorage
+    const localRooms = JSON.parse(localStorage.getItem('local_created_rooms') || '[]');
+    const updatedLocal = localRooms.filter(r => r.code !== code);
+    localStorage.setItem('local_created_rooms', JSON.stringify(updatedLocal));
+
+    // 2. Remove creator, attendee, and notes keys
     localStorage.removeItem(`room_creator_${code}`);
     localStorage.removeItem(`attendee_${code}`);
+    localStorage.removeItem(`room_notes_${code}`);
+
+    // 3. Dispatch custom event for real-time room deletion sync across app
+    window.dispatchEvent(new CustomEvent('roomDeleted', { detail: { code } }));
 
     alert(`Room "${event?.title || code}" has been permanently deleted.`);
     navigate('/rooms');

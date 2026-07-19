@@ -75,6 +75,8 @@ const BrowseRooms = () => {
 
   useEffect(() => {
     fetchRooms();
+    window.addEventListener('roomDeleted', fetchRooms);
+    return () => window.removeEventListener('roomDeleted', fetchRooms);
   }, [search, selectedTemplate, selectedStatus, selectedDate]);
 
   const handleClearFilters = () => {

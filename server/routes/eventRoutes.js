@@ -327,6 +327,7 @@ router.delete('/:code', async (req, res) => {
     await Jar.deleteMany({ eventId: event._id });
     await Note.deleteMany({ eventId: event._id });
     await Event.deleteOne({ _id: event._id });
+    await Event.deleteMany({ code });
 
     // Broadcast room deletion to active sockets
     const io = req.app.get('socketio');

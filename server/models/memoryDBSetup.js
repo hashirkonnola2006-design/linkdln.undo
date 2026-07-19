@@ -177,12 +177,22 @@ export const setupMemoryDB = (Model, collectionName) => {
 
   // Mock static deleteMany
   Model.deleteMany = function(query) {
+    let items = global.memoryDB[collectionName] || [];
     if (query && query.eventId) {
-      global.memoryDB[collectionName] = (global.memoryDB[collectionName] || []).filter(
+      global.memoryDB[collectionName] = items.filter(
         item => !item.eventId || item.eventId.toString() !== query.eventId.toString()
       );
+    } else if (query && query.code) {
+      global.memoryDB[collectionName] = items.filter(item => item.code !== query.code);
+    } else if (query && query._id) {
+      global.memoryDB[collectionName] = items.filter(item => item._id?.toString() !== query._id?.toString());
     }
-    return { deletedCount: 0 };
+    return { deletedCount: 1 };
+  };
+
+  // Mock static deleteOne
+  Model.deleteOne = function(query) {
+    return Model.deleteMany(query);
   };
 
   // Mock instantiation save prototype
