@@ -17,14 +17,25 @@ export const AuthProvider = ({ children }) => {
       if (res.ok) {
         const data = await res.json();
         setUser(data);
-      } else {
+        setLoading(false);
+        return;
+      }
+    } catch (_) {
+      // Backend server unreachable (e.g. standalone Vercel preview)
+    }
+
+    // Fallback: check local storage session
+    const localUser = localStorage.getItem('session_user');
+    if (localUser) {
+      try {
+        setUser(JSON.parse(localUser));
+      } catch (_) {
         setUser(null);
       }
-    } catch {
+    } else {
       setUser(null);
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -32,43 +43,73 @@ export const AuthProvider = ({ children }) => {
   }, [checkSession]);
 
   const login = async (name) => {
-    const res = await fetch(`${API}/api/auth/login`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name })
-    });
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.message || 'Login failed');
+    try {
+      const res = await fetch(`${API}/api/auth/login`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setUser(data);
+        localStorage.setItem('session_user', JSON.stringify(data));
+        return data;
+      }
+    } catch (_) {
+      console.warn('Backend server unreachable, falling back to local session mode.');
     }
-    const data = await res.json();
-    setUser(data);
-    return data;
+
+    // Fallback local session creation when backend API is unreachable
+    const fallbackUser = {
+      _id: 'user_' + Math.random().toString(36).substring(2, 9),
+      name: name.trim(),
+      bio: '',
+      role: 'Organizer / Product Lead',
+      company: 'linkdln.undo',
+      location: 'Malappuram',
+      avatar: `https://api.dicebear.com/7.x/open-peeps/svg?seed=${encodeURIComponent(name.trim())}`,
+      createdAt: new Date().toISOString()
+    };
+    setUser(fallbackUser);
+    localStorage.setItem('session_user', JSON.stringify(fallbackUser));
+    return fallbackUser;
   };
 
   const logout = async () => {
-    await fetch(`${API}/api/auth/logout`, {
-      method: 'POST',
-      credentials: 'include'
-    });
+    try {
+      await fetch(`${API}/api/auth/logout`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+    } catch (_) {}
+    localStorage.removeItem('session_user');
     setUser(null);
   };
 
   const updateProfile = async (fields) => {
-    const res = await fetch(`${API}/api/auth/me`, {
-      method: 'PATCH',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(fields)
-    });
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.message || 'Update failed');
+    try {
+      const res = await fetch(`${API}/api/auth/me`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(fields)
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setUser(data);
+        localStorage.setItem('session_user', JSON.stringify(data));
+        return data;
+      }
+    } catch (_) {
+      console.warn('Backend server unreachable, updating local session.');
     }
-    const data = await res.json();
-    setUser(data);
-    return data;
+
+    // Fallback profile update
+    const updatedUser = { ...user, ...fields };
+    setUser(updatedUser);
+    localStorage.setItem('session_user', JSON.stringify(updatedUser));
+    return updatedUser;
   };
 
   return (
