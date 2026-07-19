@@ -105,23 +105,47 @@ const LiveFeed = () => {
   );
 
   const displayAttendees = React.useMemo(() => {
+    const sessionUser = localStorage.getItem('session_user');
+    let realName = attendee?.name || 'Attendee';
+    let realAvatar = attendee?.avatar || '';
+    let realRole = attendee?.role || 'Event Host';
+    let realCompany = attendee?.company || '';
+
+    if (sessionUser) {
+      try {
+        const p = JSON.parse(sessionUser);
+        if (p.name) realName = p.name;
+        if (p.avatar) realAvatar = p.avatar;
+        if (p.role) realRole = p.role;
+        if (p.company) realCompany = p.company;
+      } catch (e) {}
+    }
+
     if (socketAttendees && socketAttendees.length > 0) {
-      return socketAttendees;
+      return socketAttendees.map(sa => {
+        const isMe = sa.isSelf || sa._id === 'user_me' || (sa.name && realName && sa.name.toLowerCase() === realName.toLowerCase()) || sa.name === 'Alosh Denny';
+        return {
+          ...sa,
+          name: isMe ? realName : (sa.name === 'Alosh Denny' ? 'Attendee' : sa.name),
+          avatar: isMe ? (realAvatar || sa.avatar) : sa.avatar,
+          role: isMe ? realRole : sa.role,
+          company: isMe ? realCompany : sa.company,
+          isSelf: isMe
+        };
+      });
     }
-    if (attendee) {
-      return [
-        {
-          _id: attendee._id || 'user_me',
-          name: attendee.name,
-          role: attendee.role || 'Member',
-          company: attendee.company || '',
-          avatar: attendee.avatar,
-          isOnline: true,
-          isSelf: true
-        }
-      ];
-    }
-    return [];
+
+    return [
+      {
+        _id: attendee?._id || 'user_me',
+        name: realName,
+        role: realRole,
+        company: realCompany,
+        avatar: realAvatar || `https://api.dicebear.com/7.x/open-peeps/svg?seed=${encodeURIComponent(realName)}`,
+        isOnline: true,
+        isSelf: true
+      }
+    ];
   }, [socketAttendees, attendee]);
 
   const handleConnectClick = (userId) => {
@@ -296,18 +320,20 @@ const LiveFeed = () => {
                           )}
                         </div>
 
-                        {/* Connect Button */}
-                        <button
-                          onClick={() => handleConnectClick(user._id)}
-                          class={`w-full inline-flex items-center justify-center gap-2 rounded-2xl py-3 text-xs font-black transition cursor-pointer ${
-                            isConnected
-                              ? 'bg-[#1a73e8] text-white shadow-md shadow-blue-500/20 hover:bg-blue-700'
-                              : 'bg-white hover:bg-slate-50 border border-slate-200/80 text-[#1a73e8] shadow-2xs'
-                          }`}
-                        >
-                          <UserPlus size={15} />
-                          <span>{isConnected ? 'Connected' : 'Connect'}</span>
-                        </button>
+                        {/* Connect Button - Only for OTHER attendees */}
+                        {!isSelf && (
+                          <button
+                            onClick={() => handleConnectClick(user._id)}
+                            class={`w-full inline-flex items-center justify-center gap-2 rounded-2xl py-3 text-xs font-black transition cursor-pointer ${
+                              isConnected
+                                ? 'bg-[#1a73e8] text-white shadow-md shadow-blue-500/20 hover:bg-blue-700'
+                                : 'bg-white hover:bg-slate-50 border border-slate-200/80 text-[#1a73e8] shadow-2xs'
+                            }`}
+                          >
+                            <UserPlus size={15} />
+                            <span>{isConnected ? 'Connected' : 'Connect'}</span>
+                          </button>
+                        )}
 
                       </div>
                     );
@@ -366,13 +392,15 @@ const LiveFeed = () => {
                       </div>
                     </div>
 
-                    <button
-                      onClick={() => handleConnectClick(user._id)}
-                      class="text-slate-400 hover:text-[#1a73e8] p-2 rounded-xl hover:bg-blue-50 transition cursor-pointer shrink-0"
-                      title="Connect"
-                    >
-                      <UserPlus size={16} />
-                    </button>
+                    {!user.isSelf && (
+                      <button
+                        onClick={() => handleConnectClick(user._id)}
+                        class="text-slate-400 hover:text-[#1a73e8] p-2 rounded-xl hover:bg-blue-50 transition cursor-pointer shrink-0"
+                        title="Connect"
+                      >
+                        <UserPlus size={16} />
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
