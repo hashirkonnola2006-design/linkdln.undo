@@ -283,17 +283,6 @@ const CreateRoom = () => {
                         );
                       })}
                     </div>
-
-                    {/* Regenerate Variation Button */}
-                    <button
-                      type="button"
-                      onClick={handleRegeneratePoster}
-                      class="inline-flex items-center gap-1.5 text-xs font-black text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-full px-4 py-2.5 transition cursor-pointer shrink-0 border border-blue-100 shadow-2xs"
-                      title="Generate another 3-color organic variation with same theme"
-                    >
-                      <RefreshCw size={14} class="text-blue-600" />
-                      <span>Regenerate Variation</span>
-                    </button>
                   </div>
                 </div>
               ) : (
