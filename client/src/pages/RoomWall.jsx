@@ -138,42 +138,53 @@ const RoomWall = () => {
     attendee?._id
   );
 
-  // Fetch Notes from DB
+  // Fetch Notes from DB & localStorage fallback
   const loadNotes = async () => {
+    const localSaved = JSON.parse(localStorage.getItem(`room_notes_${code}`) || '[]');
+    setNotes(localSaved);
+
     try {
       const res = await fetch(`/api/events/${code}/notes`);
       if (res.ok) {
-        const data = await res.json();
-        setNotes(data || []);
-      } else {
-        setNotes([]);
+        const serverData = await res.json();
+        if (serverData && serverData.length > 0) {
+          const mergedMap = new Map();
+          [...localSaved, ...serverData].forEach(n => {
+            if (n && n._id) mergedMap.set(n._id, n);
+          });
+          const mergedNotes = Array.from(mergedMap.values());
+          setNotes(mergedNotes);
+          localStorage.setItem(`room_notes_${code}`, JSON.stringify(mergedNotes));
+        }
       }
-    } catch (err) {
-      setNotes([]);
-    }
+    } catch (err) {}
   };
 
   useEffect(() => {
-    if (event?._id) {
+    if (code) {
       loadNotes();
     }
-  }, [event]);
+  }, [code, event?._id]);
 
   // Handle Like Click
   const handleLike = async (noteId) => {
     if (!attendee) return;
     
-    setNotes(prev => prev.map(note => {
-      if (note._id === noteId) {
-        const hasLiked = note.likedBy?.includes(attendee._id);
-        const updatedLikedBy = hasLiked 
-          ? note.likedBy.filter(id => id !== attendee._id)
-          : [...(note.likedBy || []), attendee._id];
-        const updatedLikes = hasLiked ? Math.max(0, note.likes - 1) : note.likes + 1;
-        return { ...note, likes: updatedLikes, likedBy: updatedLikedBy };
-      }
-      return note;
-    }));
+    setNotes(prev => {
+      const updated = prev.map(note => {
+        if (note._id === noteId) {
+          const hasLiked = note.likedBy?.includes(attendee._id);
+          const updatedLikedBy = hasLiked 
+            ? note.likedBy.filter(id => id !== attendee._id)
+            : [...(note.likedBy || []), attendee._id];
+          const updatedLikes = hasLiked ? Math.max(0, note.likes - 1) : note.likes + 1;
+          return { ...note, likes: updatedLikes, likedBy: updatedLikedBy };
+        }
+        return note;
+      });
+      localStorage.setItem(`room_notes_${code}`, JSON.stringify(updated));
+      return updated;
+    });
 
     try {
       await fetch(`/api/events/${code}/notes/${noteId}/like`, {
@@ -187,12 +198,12 @@ const RoomWall = () => {
   // Submit new note
   const handleNoteSubmit = async (e) => {
     e.preventDefault();
-    if (!noteForm.title || !noteForm.content) return;
+    if (!noteForm.title.trim() || !noteForm.content.trim()) return;
 
     const newNote = {
-      _id: 'note_' + Date.now(),
-      title: noteForm.title,
-      content: noteForm.content,
+      _id: 'note_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+      title: noteForm.title.trim(),
+      content: noteForm.content.trim(),
       color: noteForm.color,
       attachment: noteForm.attachment,
       authorName: attendee?.name || 'Attendee',
@@ -202,7 +213,11 @@ const RoomWall = () => {
       createdAt: new Date().toISOString()
     };
 
-    setNotes(prev => [newNote, ...prev]);
+    setNotes(prev => {
+      const updated = [newNote, ...prev];
+      localStorage.setItem(`room_notes_${code}`, JSON.stringify(updated));
+      return updated;
+    });
 
     try {
       await fetch(`/api/events/${code}/notes`, {
