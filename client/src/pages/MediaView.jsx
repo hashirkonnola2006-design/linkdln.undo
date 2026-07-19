@@ -87,7 +87,52 @@ const MediaView = () => {
 
   // Modals
   const [showCaptureModal, setShowCaptureModal] = useState(false);
+  const [showDriveModal, setShowDriveModal] = useState(false);
+  const [driveInputUrl, setDriveInputUrl] = useState('');
   const [selectedLightboxItem, setSelectedLightboxItem] = useState(null);
+
+  const handleConnectGoogle = (e) => {
+    if (e) e.preventDefault();
+    const targetUrl = `/api/auth/google?roomCode=${encodeURIComponent(code)}&title=${encodeURIComponent(event?.title || '')}&description=${encodeURIComponent(event?.description || '')}&hostName=${encodeURIComponent(event?.hostName || '')}&resourcesDriveUrl=${encodeURIComponent(activeDriveUrl || '')}&driveFolderId=${encodeURIComponent(effectiveFolderId || '')}`;
+    try {
+      window.location.href = targetUrl;
+    } catch (_) {}
+    setShowDriveModal(true);
+  };
+
+  const handleSaveDriveLink = async (e) => {
+    e.preventDefault();
+    if (!driveInputUrl.trim()) return;
+
+    const newUrl = driveInputUrl.trim();
+    const extractedId = extractDriveFolderId(newUrl);
+
+    // Save locally
+    const localRooms = JSON.parse(localStorage.getItem('local_created_rooms') || '[]');
+    const index = localRooms.findIndex(r => r.code === code);
+    if (index >= 0) {
+      localRooms[index].resourcesDriveUrl = newUrl;
+      if (extractedId) localRooms[index].driveFolderId = extractedId;
+    } else {
+      localRooms.push({ code, title: event?.title || 'Room ' + code, resourcesDriveUrl: newUrl, driveFolderId: extractedId });
+    }
+    localStorage.setItem('local_created_rooms', JSON.stringify(localRooms));
+
+    // Try DB update
+    try {
+      await fetch(`/api/events/${code}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resourcesDriveUrl: newUrl, driveFolderId: extractedId })
+      });
+    } catch (_) {}
+
+    if (extractedId) setFolderId(extractedId);
+    setDriveOAuthConnected(true);
+    setShowDriveModal(false);
+    loadMedia(true);
+    alert('Google Drive folder connected successfully!');
+  };
 
   // Handle OAuth callback result from URL params
   useEffect(() => {
@@ -379,12 +424,6 @@ const MediaView = () => {
       </div>
     );
   }
-
-  const handleConnectGoogle = (e) => {
-    e.preventDefault();
-    const targetUrl = `/api/auth/google?roomCode=${encodeURIComponent(code)}&title=${encodeURIComponent(event?.title || '')}&description=${encodeURIComponent(event?.description || '')}&hostName=${encodeURIComponent(event?.hostName || '')}&resourcesDriveUrl=${encodeURIComponent(activeDriveUrl || '')}&driveFolderId=${encodeURIComponent(effectiveFolderId || '')}`;
-    window.location.href = targetUrl;
-  };
 
   return (
     <RoomLayout
@@ -1113,6 +1152,72 @@ const MediaCaptureModal = ({ code, attendee, onClose, onMediaCaptured }) => {
         )}
 
       </div>
+
+      {/* Link Google Drive Folder Modal */}
+      {showDriveModal && (
+        <div class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div class="bg-white rounded-3xl border border-slate-100 max-w-lg w-full p-6 space-y-6 shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+              <div class="flex items-center gap-3">
+                <div class="p-2.5 rounded-2xl bg-blue-50 text-blue-600">
+                  <GoogleDriveLogo />
+                </div>
+                <div>
+                  <h3 class="font-display font-extrabold text-base text-slate-900">
+                    Connect Google Account & Drive
+                  </h3>
+                  <p class="text-xs text-slate-400 font-medium">
+                    Link your room to your Google Drive folder for live photo/video sync.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowDriveModal(false)}
+                class="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveDriveLink} class="space-y-4">
+              <div class="space-y-2">
+                <label class="text-xs font-extrabold text-slate-800">
+                  Google Drive Folder Link or Folder ID
+                </label>
+                <input
+                  type="text"
+                  placeholder="https://drive.google.com/drive/folders/..."
+                  value={driveInputUrl}
+                  onChange={(e) => setDriveInputUrl(e.target.value)}
+                  class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none bg-slate-50/50"
+                  required
+                />
+                <p class="text-[11px] text-slate-400 leading-relaxed">
+                  Make sure your Google Drive folder access is set to "Anyone with the link can view".
+                </p>
+              </div>
+
+              <div class="flex items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowDriveModal(false)}
+                  class="flex-1 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold text-xs py-3.5 transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  class="flex-1 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs py-3.5 shadow-md shadow-blue-600/20 transition cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <Check size={16} />
+                  Connect Folder
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

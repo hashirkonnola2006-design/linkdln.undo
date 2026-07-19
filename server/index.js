@@ -22,7 +22,7 @@ const server = http.createServer(app);
 // Configure CORS — must specify exact origin (not '*') so cookies are sent
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3000';
 const corsOptions = {
-  origin: [CLIENT_URL, 'http://localhost:3000', 'http://localhost:3001', 'http://localhost:5173'],
+  origin: (origin, callback) => callback(null, true),
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   credentials: true
 };
@@ -32,10 +32,14 @@ app.use(cookieParser());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-// Set up Socket.io
-const io = new Server(server, {
-  cors: corsOptions
-});
+// Set up Socket.io safely
+let io = null;
+try {
+  io = new Server(server, { cors: corsOptions });
+  socketHandler(io);
+} catch (err) {
+  console.warn('Socket.io setup skipped in serverless mode');
+}
 
 // Make Socket.io instance accessible in Express route handlers
 app.set('socketio', io);
@@ -46,12 +50,9 @@ app.use('/api/attendees', attendeeRoutes);
 app.use('/api/auth', authRoutes);
 
 // Base Route
-app.get('/', (req, res) => {
+app.get('/api', (req, res) => {
   res.send('linkdln.undo API is running...');
 });
-
-// Initialize Socket.io connection handlers
-socketHandler(io);
 
 // Define PORT and start listening
 const PORT = process.env.PORT || 5000;

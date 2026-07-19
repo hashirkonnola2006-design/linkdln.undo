@@ -5,9 +5,28 @@ import Jar from '../models/Jar.js';
 import Note from '../models/Note.js';
 import { setupMemoryDB } from '../models/memoryDBSetup.js';
 
+const setupMemoryDBFallback = () => {
+  global.useMemoryDB = true;
+  global.memoryDB = {
+    events: [],
+    attendees: [],
+    jars: [],
+    notes: []
+  };
+  setupMemoryDB(Event, 'events');
+  setupMemoryDB(Attendee, 'attendees');
+  setupMemoryDB(Jar, 'jars');
+  setupMemoryDB(Note, 'notes');
+};
+
 const connectDB = async () => {
+  if (!process.env.MONGODB_URI) {
+    console.warn(`⚠️  MONGODB_URI not set. Using in-memory DB fallback.`);
+    setupMemoryDBFallback();
+    return;
+  }
+
   try {
-    // Attempt Mongoose connection with a short timeout to prevent long hangs on startup
     const conn = await mongoose.connect(process.env.MONGODB_URI, {
       serverSelectionTimeoutMS: 2500
     });
@@ -15,23 +34,8 @@ const connectDB = async () => {
     global.useMemoryDB = false;
   } catch (error) {
     console.warn(`\n⚠️  MongoDB connection failed: ${error.message}`);
-    console.warn(`⚠️  FALLING BACK TO IN-MEMORY DATABASE. Platform data will reset on server restart.\n`);
-    
-    global.useMemoryDB = true;
-    
-    // Initialize standard mock arrays
-    global.memoryDB = {
-      events: [],
-      attendees: [],
-      jars: [],
-      notes: []
-    };
-
-    // Bind memory interceptors to models
-    setupMemoryDB(Event, 'events');
-    setupMemoryDB(Attendee, 'attendees');
-    setupMemoryDB(Jar, 'jars');
-    setupMemoryDB(Note, 'notes');
+    console.warn(`⚠️  FALLING BACK TO IN-MEMORY DATABASE.\n`);
+    setupMemoryDBFallback();
   }
 };
 
