@@ -58,7 +58,12 @@ router.post('/', async (req, res) => {
 router.get('/', async (req, res) => {
   try {
     // Purge legacy test rooms
-    await Event.deleteMany({ title: { $in: ['test 01', 'heheheheh', 'PEDFEFE', 'pedfefe'] } });
+    await Event.deleteMany({
+      $or: [
+        { title: { $regex: 'test|hehe|keke|demo|sample', $options: 'i' } },
+        { description: { $regex: 'test|hehe|keke|demo|sample', $options: 'i' } }
+      ]
+    });
 
     const { search, template, status, date } = req.query;
     let query = { visibility: 'Public' };

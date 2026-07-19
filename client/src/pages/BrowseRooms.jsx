@@ -26,16 +26,31 @@ const BrowseRooms = () => {
   const [selectedDate, setSelectedDate] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const isTestOrDemoRoom = (room) => {
+    if (!room) return true;
+    const title = (room.title || '').toLowerCase().trim();
+    const desc = (room.description || '').toLowerCase().trim();
+    if (!title && !desc) return true;
+    return title.includes('test') || title.includes('hehe') || title.includes('keke') || title.includes('demo') || title.includes('sample') ||
+           desc.includes('keke') || desc.includes('hehe') || desc.includes('test');
+  };
+
   const fetchRooms = async () => {
     setLoading(true);
     try {
-      // Clean out local_created_rooms if it contains test rooms
-      const rawLocal = localStorage.getItem('local_created_rooms');
-      if (rawLocal && (rawLocal.includes('test 01') || rawLocal.includes('heheheheh'))) {
-        const parsed = JSON.parse(rawLocal || '[]');
-        const cleaned = parsed.filter(r => r.title !== 'test 01' && r.title !== 'heheheheh');
-        localStorage.setItem('local_created_rooms', JSON.stringify(cleaned));
-      }
+      // Thoroughly clean out local_created_rooms and associated room keys
+      const localRooms = JSON.parse(localStorage.getItem('local_created_rooms') || '[]');
+      const cleanedLocal = localRooms.filter(r => !isTestOrDemoRoom(r));
+      localStorage.setItem('local_created_rooms', JSON.stringify(cleanedLocal));
+
+      localRooms.forEach(r => {
+        if (isTestOrDemoRoom(r) && r.code) {
+          localStorage.removeItem(`room_creator_${r.code}`);
+          localStorage.removeItem(`attendee_${r.code}`);
+          localStorage.removeItem(`room_notes_${r.code}`);
+          fetch(`/api/events/${r.code}`, { method: 'DELETE' }).catch(() => {});
+        }
+      });
 
       let url = `/api/events?search=${encodeURIComponent(search)}`;
       if (selectedTemplate !== 'All') url += `&template=${selectedTemplate}`;
@@ -43,7 +58,6 @@ const BrowseRooms = () => {
       if (selectedDate) url += `&date=${selectedDate}`;
 
       const res = await fetch(url);
-      const localRooms = JSON.parse(localStorage.getItem('local_created_rooms') || '[]');
       
       let serverData = [];
       if (res.ok) {
@@ -52,8 +66,8 @@ const BrowseRooms = () => {
 
       // Merge server rooms and locally created rooms
       const mergedMap = new Map();
-      [...localRooms, ...serverData].forEach(item => {
-        if (item && item.code && item.title !== 'test 01' && item.title !== 'heheheheh') {
+      [...cleanedLocal, ...serverData].forEach(item => {
+        if (item && item.code && !isTestOrDemoRoom(item)) {
           mergedMap.set(item.code, item);
         }
       });
@@ -77,7 +91,7 @@ const BrowseRooms = () => {
     } catch (err) {
       console.error('Error fetching rooms:', err);
       const localRooms = JSON.parse(localStorage.getItem('local_created_rooms') || '[]');
-      const cleaned = localRooms.filter(r => r.title !== 'test 01' && r.title !== 'heheheheh');
+      const cleaned = localRooms.filter(r => !isTestOrDemoRoom(r));
       setRooms(cleaned);
     } finally {
       setLoading(false);
