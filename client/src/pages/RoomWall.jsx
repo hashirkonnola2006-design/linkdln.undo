@@ -1,0 +1,572 @@
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { RoomLayout } from '../components/Layouts';
+import { useSocket } from '../hooks/useSocket';
+import { 
+  Search, 
+  Heart, 
+  Download, 
+  FileText, 
+  Plus, 
+  X, 
+  ChevronDown
+} from 'lucide-react';
+
+// Clean Solid Color Theme Abstract Circle Pin matching Website Design System
+const PushPin = ({ color = 'blue' }) => {
+  const solidColors = {
+    blue: 'bg-[#1a73e8]',
+    yellow: 'bg-[#f59e0b]',
+    green: 'bg-[#10b981]',
+    purple: 'bg-[#8b5cf6]',
+    white: 'bg-[#1a73e8]',
+    orange: 'bg-[#ea580c]'
+  };
+
+  const pinColor = solidColors[color] || 'bg-[#1a73e8]';
+
+  return (
+    <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 z-30 pointer-events-none">
+      {/* Simple Solid Color Circle Badge */}
+      <div class={`h-6 w-6 rounded-full ${pinColor} border-2 border-white shadow-md shadow-slate-400/30 flex items-center justify-center`}>
+        {/* Simple Solid White Center Dot */}
+        <div class="h-1.5 w-1.5 rounded-full bg-white opacity-90" />
+      </div>
+    </div>
+  );
+};
+
+const RoomWall = () => {
+  const { code } = useParams();
+  const navigate = useNavigate();
+
+  const [event, setEvent] = useState(null);
+  const [attendee, setAttendee] = useState(null);
+  const [loading, setLoading] = useState(true);
+  
+  // Note Board state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState('Latest');
+  const [showAddNote, setShowAddNote] = useState(false);
+  const [noteForm, setNoteForm] = useState({
+    title: '',
+    content: '',
+    color: 'yellow',
+    attachment: ''
+  });
+
+  const colorOptions = [
+    { name: 'blue', label: 'Blue', bg: 'bg-[#dbeafe] text-[#1e3a8a] border-blue-200/50' },
+    { name: 'yellow', label: 'Yellow', bg: 'bg-[#fef08a] text-[#713f12] border-yellow-200/50' },
+    { name: 'green', label: 'Green', bg: 'bg-[#bbf7d0] text-[#064e3b] border-emerald-200/50' },
+    { name: 'purple', label: 'Lavender', bg: 'bg-[#e9d5ff] text-[#581c87] border-purple-200/50' },
+    { name: 'white', label: 'White', bg: 'bg-white text-slate-900 border-slate-200/80 shadow-sm' },
+    { name: 'orange', label: 'Peach', bg: 'bg-[#fed7aa] text-[#7c2d12] border-orange-200/50' }
+  ];
+
+  // High-fidelity fallback note board data matching Screenshot exactly
+  const defaultNotes = [
+    {
+      _id: 'n1',
+      title: 'Meeting Link',
+      content: 'Check out the new wireframes on Drive before our sync at 3 PM.',
+      color: 'blue',
+      authorName: 'Marcus Chen',
+      authorAvatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=100&h=100',
+      attachment: 'Q3_Roadmap_V2.fig',
+      likes: 4,
+      likedBy: [],
+      createdAt: new Date(Date.now() - 500000)
+    },
+    {
+      _id: 'n2',
+      title: 'Finalizing the Color Palette',
+      content: 'We need to ensure the primary blue #004ac6 has enough contrast for accessibility on the landing page CTA buttons.',
+      color: 'yellow',
+      authorName: 'Alex Rivera',
+      authorAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&h=100',
+      likes: 12,
+      likedBy: [],
+      createdAt: new Date(Date.now() - 3600000)
+    },
+    {
+      _id: 'n3',
+      title: "Don't forget the FAB!",
+      content: 'The floating action button needs to be clearly visible over all note colors. Using the primary blue #004ac6 should do the trick.',
+      color: 'green',
+      authorName: 'Tom Wilson',
+      authorAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=100&h=100',
+      likes: 3,
+      likedBy: [],
+      createdAt: new Date(Date.now() - 10800000)
+    },
+    {
+      _id: 'n4',
+      title: 'Logo Assets',
+      content: 'All variations of the linkdln.undo logo are now available in the shared folder. Please use the SVG versions for web.',
+      color: 'purple',
+      authorName: 'Jordan Taylor',
+      authorAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=100&h=100',
+      attachment: 'Brand_Kit_2024.zip',
+      likes: 21,
+      likedBy: [],
+      createdAt: new Date(Date.now() - 1800000)
+    },
+    {
+      _id: 'n5',
+      title: 'Performance Review',
+      content: "The masonry grid is looking great on desktop, but let's monitor the layout shift on mobile screens with slower connections.",
+      color: 'white',
+      authorName: 'Sarah Jenkins',
+      authorAvatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=100&h=100',
+      likes: 8,
+      likedBy: [],
+      createdAt: new Date(Date.now() - 7200000)
+    },
+    {
+      _id: 'n6',
+      title: 'Dark Mode Audit',
+      content: 'Check how these sticky note colors adapt when dark mode is toggled. We might need slightly more muted variants for surface-dim.',
+      color: 'orange',
+      authorName: 'Sonia Miller',
+      authorAvatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=100&h=100',
+      likes: 15,
+      likedBy: [],
+      createdAt: new Date(Date.now() - 14400000)
+    }
+  ];
+
+  // Load local profile
+  useEffect(() => {
+    const loadAttendee = () => {
+      let saved = localStorage.getItem(`attendee_${code}`);
+      if (saved) {
+        setAttendee(JSON.parse(saved));
+      } else {
+        const globalProfile = localStorage.getItem('global_profile');
+        const isCreator = localStorage.getItem(`room_creator_${code}`) === 'true';
+        if (globalProfile) {
+          try {
+            const parsed = JSON.parse(globalProfile);
+            if (parsed.name) {
+              const selfAttendee = {
+                _id: 'user_me',
+                name: parsed.name,
+                email: parsed.email || '',
+                role: parsed.role || (isCreator ? 'Event Host' : 'Attendee'),
+                company: parsed.company || 'Community',
+                avatar: parsed.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&h=100',
+                isHost: isCreator,
+                isOnline: true
+              };
+              localStorage.setItem(`attendee_${code}`, JSON.stringify(selfAttendee));
+              setAttendee(selfAttendee);
+              return;
+            }
+          } catch (err) {}
+        }
+        
+        const demoSelf = {
+          _id: 'user_me',
+          name: 'Alex Rivera',
+          role: 'Event Host',
+          avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&h=100',
+          isHost: true,
+          isOnline: true
+        };
+        setAttendee(demoSelf);
+      }
+    };
+    loadAttendee();
+    window.addEventListener('profileUpdated', loadAttendee);
+    return () => window.removeEventListener('profileUpdated', loadAttendee);
+  }, [code]);
+
+  // Load event details
+  useEffect(() => {
+    const fetchEvent = async () => {
+      try {
+        const res = await fetch(`/api/events/${code}`);
+        if (!res.ok) throw new Error('Room not found');
+        const data = await res.json();
+        setEvent(data);
+      } catch (err) {
+        setEvent({
+          _id: 'mock1',
+          code: code,
+          title: 'Design Sync Room'
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchEvent();
+  }, [code]);
+
+  // Connect to Sockets
+  const { attendees, onlineCount, notes, setNotes } = useSocket(
+    event?._id,
+    attendee?._id
+  );
+
+  // Fetch Notes from DB or fallback
+  const loadNotes = async () => {
+    try {
+      const res = await fetch(`/api/events/${code}/notes`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.length > 0) {
+          setNotes(data);
+        } else {
+          setNotes(defaultNotes);
+        }
+      } else {
+        setNotes(defaultNotes);
+      }
+    } catch (err) {
+      setNotes(defaultNotes);
+    }
+  };
+
+  useEffect(() => {
+    if (event?._id) {
+      loadNotes();
+    }
+  }, [event]);
+
+  // Handle Like Click
+  const handleLike = async (noteId) => {
+    if (!attendee) return;
+    
+    setNotes(prev => prev.map(note => {
+      if (note._id === noteId) {
+        const hasLiked = note.likedBy?.includes(attendee._id);
+        const updatedLikedBy = hasLiked 
+          ? note.likedBy.filter(id => id !== attendee._id)
+          : [...(note.likedBy || []), attendee._id];
+        const updatedLikes = hasLiked ? Math.max(0, note.likes - 1) : note.likes + 1;
+        return { ...note, likes: updatedLikes, likedBy: updatedLikedBy };
+      }
+      return note;
+    }));
+
+    try {
+      await fetch(`/api/events/${code}/notes/${noteId}/like`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ attendeeId: attendee._id })
+      });
+    } catch (err) {}
+  };
+
+  // Submit new note
+  const handleNoteSubmit = async (e) => {
+    e.preventDefault();
+    if (!noteForm.title || !noteForm.content) return;
+
+    const newNote = {
+      _id: 'note_' + Date.now(),
+      title: noteForm.title,
+      content: noteForm.content,
+      color: noteForm.color,
+      attachment: noteForm.attachment,
+      authorName: attendee?.name || 'Alex Rivera',
+      authorAvatar: attendee?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&h=100',
+      likes: 0,
+      likedBy: [],
+      createdAt: new Date().toISOString()
+    };
+
+    setNotes(prev => [newNote, ...prev]);
+
+    try {
+      await fetch(`/api/events/${code}/notes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newNote)
+      });
+    } catch (error) {}
+
+    setNoteForm({ title: '', content: '', color: 'yellow', attachment: '' });
+    setShowAddNote(false);
+  };
+
+  const getNoteColorStyles = (colorName) => {
+    const matched = colorOptions.find(o => o.name === colorName);
+    return matched ? matched.bg : 'bg-[#fef08a] text-[#713f12] border-yellow-200/50';
+  };
+
+  // Organic sticky note tilts matching screenshot
+  const getNoteRotationClass = (index) => {
+    const rotations = [
+      '-rotate-1 sm:-rotate-1.5',
+      'rotate-0',
+      'rotate-1 sm:rotate-1.5',
+      '-rotate-1 sm:-rotate-1.5',
+      'rotate-0',
+      'rotate-1 sm:rotate-1'
+    ];
+    return rotations[index % rotations.length];
+  };
+
+  if (loading) {
+    return (
+      <div class="h-screen w-screen flex items-center justify-center bg-[#f8fafc] text-slate-500 font-semibold">
+        Loading room wall...
+      </div>
+    );
+  }
+
+  const activeNotesList = (notes && notes.length > 0) ? notes : defaultNotes;
+
+  const filteredNotes = activeNotesList.filter(note =>
+    (note.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (note.content || '').toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const sortedNotes = [...filteredNotes].sort((a, b) => {
+    if (sortBy === 'Popular') {
+      return (b.likes || 0) - (a.likes || 0);
+    }
+    return new Date(b.createdAt || Date.now()) - new Date(a.createdAt || Date.now());
+  });
+
+  return (
+    <RoomLayout eventTitle={event?.title || 'Design Sync Room'} onlineCount={onlineCount || 1} attendees={attendees}>
+      <div class="min-h-full bg-[#f8fafc] px-6 py-8 relative overflow-hidden">
+        
+        {/* Abstract Corner Shapes matching Screenshot 100% */}
+        <div class="absolute -top-12 -right-12 w-64 h-64 bg-[#1a73e8] rounded-full pointer-events-none -z-10" />
+        <div class="absolute top-52 -right-10 w-32 h-32 bg-[#fbbf24] rounded-full pointer-events-none -z-10" />
+        <div class="absolute -bottom-16 -left-16 w-56 h-56 bg-[#10b981] rounded-full pointer-events-none -z-10" />
+
+        {/* Dot Matrix Grid Accents */}
+        <div class="absolute top-8 left-12 grid grid-cols-5 gap-1.5 opacity-20 pointer-events-none -z-10">
+          {[...Array(15)].map((_, i) => (
+            <div key={i} class="w-1.5 h-1.5 bg-slate-500 rounded-full" />
+          ))}
+        </div>
+        <div class="absolute top-96 right-16 grid grid-cols-5 gap-1.5 opacity-20 pointer-events-none -z-10">
+          {[...Array(20)].map((_, i) => (
+            <div key={i} class="w-1.5 h-1.5 bg-slate-500 rounded-full" />
+          ))}
+        </div>
+
+        <div class="max-w-7xl mx-auto space-y-8">
+          
+          {/* Top Actions Row: Search + Sort By */}
+          <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+            
+            {/* Search Pill Input */}
+            <div class="bg-white rounded-full border border-slate-200/80 px-5 py-2.5 shadow-2xs flex items-center gap-3 w-full sm:w-80">
+              <Search class="text-slate-400 shrink-0" size={18} />
+              <input
+                type="text"
+                placeholder="Search notes..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                class="w-full text-xs font-bold bg-transparent border-none outline-none text-slate-800 placeholder:text-slate-400"
+              />
+            </div>
+
+            {/* Sort By Dropdown */}
+            <div class="flex items-center justify-end gap-2.5">
+              <span class="text-xs font-extrabold text-slate-700">Sort by:</span>
+              <div class="relative">
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  class="appearance-none bg-white rounded-full border border-slate-200/80 pl-5 pr-9 py-2 text-xs font-black text-slate-900 shadow-2xs outline-none cursor-pointer"
+                >
+                  <option value="Latest">Latest</option>
+                  <option value="Popular">Popular</option>
+                </select>
+                <ChevronDown size={14} class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+              </div>
+            </div>
+
+          </div>
+
+          {/* Sticky Notes 3-Column Grid */}
+          {sortedNotes.length === 0 ? (
+            <div class="bg-white rounded-[32px] border border-slate-200/60 p-12 text-center text-slate-400 font-bold space-y-2">
+              <p>No sticky notes found matching "{searchQuery}"</p>
+            </div>
+          ) : (
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 pt-2">
+              {sortedNotes.map((note, index) => {
+                const colorStyle = getNoteColorStyles(note.color);
+                const rotationClass = getNoteRotationClass(index);
+                const isLiked = note.likedBy?.includes(attendee?._id);
+
+                return (
+                  <div 
+                    key={note._id}
+                    class={`rounded-[24px] p-6 flex flex-col justify-between space-y-4 shadow-lg shadow-slate-200/40 relative min-h-[260px] group transition duration-300 hover:scale-[1.02] hover:-translate-y-1 ${rotationClass} ${colorStyle}`}
+                  >
+                    {/* Clean Solid Color Theme Circle Pin */}
+                    <PushPin color={note.color} />
+
+                    {/* Note Content Section */}
+                    <div class="space-y-3 pt-2">
+                      <h3 class="font-display font-black text-base md:text-lg tracking-tight leading-snug">
+                        {note.title}
+                      </h3>
+
+                      <p class="text-xs font-bold leading-relaxed opacity-90">
+                        {note.content}
+                      </p>
+
+                      {/* Attachment Box if file exists */}
+                      {note.attachment && (
+                        <div class="flex items-center justify-between rounded-2xl bg-white/50 border border-black/5 p-3 mt-3 shadow-2xs">
+                          <div class="flex items-center gap-2.5 min-w-0 pr-2">
+                            <FileText size={16} class="text-slate-800 shrink-0" />
+                            <span class="text-xs font-black text-slate-900 truncate">
+                              {note.attachment}
+                            </span>
+                          </div>
+                          <button 
+                            onClick={() => alert(`Downloading ${note.attachment}...`)}
+                            class="p-1.5 hover:bg-white/80 rounded-xl text-slate-800 transition cursor-pointer shrink-0"
+                            title="Download file"
+                          >
+                            <Download size={15} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Card Footer Divider & Author info */}
+                    <div class="border-t border-black/10 pt-3.5 flex items-center justify-between mt-auto">
+                      <div class="flex items-center gap-2.5">
+                        <img
+                          src={note.authorAvatar || `https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&h=100`}
+                          alt={note.authorName}
+                          class="h-7 w-7 rounded-full object-cover shadow-2xs border border-white/80 bg-slate-100 shrink-0"
+                        />
+                        <span class="text-xs font-bold tracking-tight opacity-90 truncate max-w-[130px]">
+                          {note.authorName}
+                        </span>
+                      </div>
+
+                      {/* Likes Counter */}
+                      <button
+                        onClick={() => handleLike(note._id)}
+                        class="inline-flex items-center gap-1.5 text-xs font-extrabold opacity-80 hover:opacity-100 transition cursor-pointer"
+                      >
+                        <Heart size={16} class={isLiked ? "fill-red-500 text-red-500" : "stroke-2"} />
+                        <span>{note.likes || 0}</span>
+                      </button>
+                    </div>
+
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+        </div>
+
+        {/* Floating Action Button (+ Add Note) matching Screenshot */}
+        <button
+          onClick={() => setShowAddNote(true)}
+          class="fixed bottom-8 right-8 z-40 bg-[#1a73e8] hover:bg-blue-700 text-white font-black text-sm px-6 py-3.5 rounded-full shadow-lg shadow-blue-500/30 flex items-center gap-2 cursor-pointer transition transform hover:scale-105"
+        >
+          <Plus size={20} />
+          <span>Add Note</span>
+        </button>
+
+        {/* Add Note Modal */}
+        {showAddNote && (
+          <div class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+            <div class="bg-white rounded-[32px] max-w-lg w-full p-8 shadow-2xl space-y-6 relative animate-in fade-in zoom-in-95 duration-200">
+              
+              <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+                <h3 class="font-display font-black text-slate-900 text-lg">Add Sticky Note</h3>
+                <button onClick={() => setShowAddNote(false)} class="text-slate-400 hover:text-slate-600 p-1">
+                  <X size={20} />
+                </button>
+              </div>
+
+              <form onSubmit={handleNoteSubmit} class="space-y-4">
+                <div class="space-y-1.5">
+                  <label class="text-xs font-extrabold text-slate-900">Title</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Color Palette & Accessibility"
+                    value={noteForm.title}
+                    onChange={(e) => setNoteForm(prev => ({ ...prev, title: e.target.value }))}
+                    required
+                    class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-xs font-bold text-slate-900 focus:border-[#1a73e8] outline-none"
+                  />
+                </div>
+
+                <div class="space-y-1.5">
+                  <label class="text-xs font-extrabold text-slate-900">Content</label>
+                  <textarea
+                    placeholder="Write your note idea..."
+                    value={noteForm.content}
+                    onChange={(e) => setNoteForm(prev => ({ ...prev, content: e.target.value }))}
+                    rows={4}
+                    required
+                    class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-xs font-bold text-slate-900 focus:border-[#1a73e8] outline-none"
+                  />
+                </div>
+
+                <div class="space-y-2">
+                  <label class="text-xs font-extrabold text-slate-900">Color Theme</label>
+                  <div class="flex flex-wrap gap-2.5">
+                    {colorOptions.map((opt) => (
+                      <button
+                        key={opt.name}
+                        type="button"
+                        onClick={() => setNoteForm(prev => ({ ...prev, color: opt.name }))}
+                        class={`h-8 px-4 rounded-xl text-xs font-bold transition border cursor-pointer ${opt.bg} ${
+                          noteForm.color === opt.name ? 'ring-2 ring-blue-600 ring-offset-2 scale-105' : 'opacity-80'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div class="space-y-1.5">
+                  <label class="text-xs font-extrabold text-slate-900">Attachment Name (Optional)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Wireframe_V2.fig"
+                    value={noteForm.attachment}
+                    onChange={(e) => setNoteForm(prev => ({ ...prev, attachment: e.target.value }))}
+                    class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-xs font-bold text-slate-900 focus:border-[#1a73e8] outline-none"
+                  />
+                </div>
+
+                <div class="pt-4 flex items-center justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddNote(false)}
+                    class="px-6 py-3 rounded-full border border-slate-200 text-xs font-black text-slate-600 hover:bg-slate-50 transition cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    class="px-7 py-3 rounded-full bg-[#1a73e8] hover:bg-blue-700 text-white text-xs font-black shadow-md shadow-blue-500/20 transition cursor-pointer"
+                  >
+                    Post Note
+                  </button>
+                </div>
+              </form>
+
+            </div>
+          </div>
+        )}
+
+      </div>
+    </RoomLayout>
+  );
+};
+
+export default RoomWall;
