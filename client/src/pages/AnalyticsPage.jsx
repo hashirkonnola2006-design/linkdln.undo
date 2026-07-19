@@ -237,14 +237,14 @@ const AnalyticsPage = () => {
             <div class="bg-white/80 backdrop-blur-xs p-3.5 rounded-2xl border border-blue-100/70 flex items-start gap-2.5">
               <span class="h-2 w-2 rounded-full bg-blue-600 mt-1.5 shrink-0"></span>
               <span>
-                <strong>Peak Attendance:</strong> Engagement peaked during your Q&A session at 11:30 AM with 412 active attendees online.
+                <strong>Peak Attendance:</strong> 0 active attendees recorded in room session.
               </span>
             </div>
 
             <div class="bg-white/80 backdrop-blur-xs p-3.5 rounded-2xl border border-blue-100/70 flex items-start gap-2.5">
               <span class="h-2 w-2 rounded-full bg-emerald-500 mt-1.5 shrink-0"></span>
               <span>
-                <strong>Top Role Connection Rate:</strong> Web Developers achieved a <strong>68.4% 1-on-1 connection rate</strong> (2x higher than other roles).
+                <strong>Connection Rate:</strong> 0% 1-on-1 connections recorded yet.
               </span>
             </div>
           </div>
@@ -259,9 +259,9 @@ const AnalyticsPage = () => {
                 <Users size={16} />
               </div>
             </div>
-            <div class="text-3xl font-extrabold text-slate-950 leading-none">94.8%</div>
-            <p class="text-[11px] text-emerald-600 font-bold flex items-center gap-1">
-              <TrendingUp size={12} /> +12% vs past average
+            <div class="text-3xl font-extrabold text-slate-950 leading-none">0%</div>
+            <p class="text-[11px] text-slate-400 font-semibold flex items-center gap-1">
+              Initial live session
             </p>
           </div>
 
@@ -272,8 +272,8 @@ const AnalyticsPage = () => {
                 <Activity size={16} />
               </div>
             </div>
-            <div class="text-3xl font-extrabold text-slate-950 leading-none">412</div>
-            <p class="text-[11px] text-slate-400 font-semibold">Active at 11:30 AM</p>
+            <div class="text-3xl font-extrabold text-slate-950 leading-none">0</div>
+            <p class="text-[11px] text-slate-400 font-semibold">Active now</p>
           </div>
 
           <div class="bg-white rounded-3xl border border-slate-100 p-6 shadow-xs space-y-3">
@@ -283,7 +283,7 @@ const AnalyticsPage = () => {
                 <FolderHeart size={16} />
               </div>
             </div>
-            <div class="text-3xl font-extrabold text-slate-950 leading-none">24</div>
+            <div class="text-3xl font-extrabold text-slate-950 leading-none">0</div>
             <p class="text-[11px] text-slate-400 font-semibold">AI semantic clusters</p>
           </div>
 
@@ -294,9 +294,9 @@ const AnalyticsPage = () => {
                 <Award size={16} />
               </div>
             </div>
-            <div class="text-3xl font-extrabold text-slate-950 leading-none">68.4%</div>
-            <p class="text-[11px] text-emerald-600 font-bold flex items-center gap-1">
-              <TrendingUp size={12} /> High 1-on-1 networking
+            <div class="text-3xl font-extrabold text-slate-950 leading-none">0%</div>
+            <p class="text-[11px] text-slate-400 font-semibold flex items-center gap-1">
+              Awaiting 1-on-1 networking
             </p>
           </div>
         </div>
@@ -328,9 +328,6 @@ const AnalyticsPage = () => {
                 class="rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-1.5 text-xs font-bold text-slate-700"
               >
                 <option value="All Jars">All Jars</option>
-                <option value="Web Developers">Web Developers Jar</option>
-                <option value="Designers">Designers Jar</option>
-                <option value="SaaS Founders">SaaS Founders Jar</option>
               </select>
 
               {/* Day filter */}
@@ -369,7 +366,7 @@ const AnalyticsPage = () => {
               </p>
             </div>
 
-            <div class="relative w-full aspect-[21/9] p-2">
+            <div class="relative w-full aspect-[21/9] p-2 flex items-center justify-center">
               <svg viewBox="0 0 600 220" class="w-full h-full" fill="none">
                 <line x1="40" y1="30" x2="560" y2="30" stroke="#f1f5f9" stroke-width="1.5" />
                 <line x1="40" y1="90" x2="560" y2="90" stroke="#f1f5f9" stroke-width="1.5" />
@@ -379,33 +376,8 @@ const AnalyticsPage = () => {
                 <text x="30" y="94" class="fill-slate-400 font-bold text-[10px]" text-anchor="end">250</text>
                 <text x="30" y="154" class="fill-slate-400 font-bold text-[10px]" text-anchor="end">100</text>
                 
-                <defs>
-                  <linearGradient id="analyticsHeatGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stop-color="#2563eb" stop-opacity="0.4" />
-                    <stop offset="100%" stop-color="#2563eb" stop-opacity="0.0" />
-                  </linearGradient>
-                </defs>
-
-                <path 
-                  d="M 50 160 Q 150 140 250 80 T 450 40 T 550 110 L 550 190 L 50 190 Z" 
-                  fill="url(#analyticsHeatGrad)" 
-                />
-                <path 
-                  d="M 50 160 Q 150 140 250 80 T 450 40 T 550 110" 
-                  stroke="#2563eb" 
-                  stroke-width="3.5" 
-                  stroke-linecap="round" 
-                />
-
-                {compareAvg && (
-                  <path 
-                    d="M 50 180 Q 150 160 250 110 T 450 70 T 550 130" 
-                    stroke="#a855f7" 
-                    stroke-width="2" 
-                    stroke-dasharray="4 4"
-                    stroke-linecap="round" 
-                  />
-                )}
+                {/* Flat Baseline for 0 activity */}
+                <line x1="40" y1="180" x2="560" y2="180" stroke="#cbd5e1" stroke-width="2" stroke-dasharray="4 4" />
               </svg>
             </div>
           </div>
@@ -414,15 +386,15 @@ const AnalyticsPage = () => {
           <div class="lg:col-span-4 bg-white rounded-3xl border border-slate-100 p-8 shadow-xs space-y-6 flex flex-col justify-between">
             <div class="space-y-1">
               <h3 class="font-display font-black text-slate-950 text-base">Attendee Demographics</h3>
-              <p class="text-xs text-slate-400 font-medium">Click role bar to filter heatmap</p>
+              <p class="text-xs text-slate-400 font-medium">Role breakdown</p>
             </div>
 
             <div class="space-y-4">
               {[
-                { role: 'Web Developers', count: '42%', color: 'bg-blue-600' },
-                { role: 'Product Designers', count: '28%', color: 'bg-purple-500' },
-                { role: 'SaaS Founders', count: '18%', color: 'bg-emerald-500' },
-                { role: 'Data Scientists', count: '12%', color: 'bg-amber-400' },
+                { role: 'Web Developers', count: '0%', color: 'bg-blue-600' },
+                { role: 'Product Designers', count: '0%', color: 'bg-purple-500' },
+                { role: 'SaaS Founders', count: '0%', color: 'bg-emerald-500' },
+                { role: 'Data Scientists', count: '0%', color: 'bg-amber-400' },
               ].map(item => {
                 const isSelected = selectedRoleFilter === item.role;
                 return (
@@ -433,7 +405,7 @@ const AnalyticsPage = () => {
                   >
                     <div class="flex justify-between text-xs font-bold text-slate-800">
                       <span>{item.role}</span>
-                      <span class="text-blue-600">{item.count}</span>
+                      <span class="text-slate-400">{item.count}</span>
                     </div>
                     <div class="h-2.5 w-full rounded-full bg-slate-100 overflow-hidden">
                       <div class={`h-full ${item.color} rounded-full transition-all duration-300`} style={{ width: item.count }}></div>
